@@ -31,7 +31,8 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 'use strict';
-let ajaxUrl = "data.php";
+let pluginDir = "/wp-content/plugins/libtables3-wordpress/";
+let ajaxUrl = pluginDir + "data.php";
 let tables = {};
 let lists = {};
 let transl = {};
