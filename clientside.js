@@ -1,6 +1,6 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Libtables3: framework for building web-applications on relational databases *
- * Version 3.0.0-alpha / Copyright (C) 2019  Bart Noordervliet, MMVI           *
+ * Version 3.0.0-beta / Copyright (C) 2020  Bart Noordervliet, MMVI            *
  *                                                                             *
  * This program is free software: you can redistribute it and/or modify        *
  * it under the terms of the GNU Affero General Public License as              *
@@ -27,39 +27,36 @@
  *         = jQuery object wrapping the corresponding DOM element  *
  *   data  = object parsed from server JSON response               *
  *   key   = unique identifier string for the table                *
- *             composed of <block>:<tag>_<params>                  *
- *             where the _<params> part is only present            *
- *             if the table has been passed parameters             *
+ *             composed of <block>:<tag>                           *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 'use strict';
 let ajaxUrl = "data.php";
 let tables = {};
+let lists = {};
+let transl = {};
+let lang = 0;
 let $ = jQuery;
 
-function tr(str) {
-  switch (navigator.language) {
-    case "nl":
-    case "nl-NL":
-      switch (str) {
-        case "Total": return "Totaal";
-        case "Page": return "Pagina";
-        case "Row": return "Rij";
-        case "of": return "van";
-        case "Error": return "Fout";
-        case "Insert": return "Toevoegen";
-        case "Export as": return "Exporteren als";
-        case "Row has errors and cannot be inserted": return "Rij heeft fouten en kan niet worden toegevoegd";
-        case "Select": return "Selecteren";
-        case "rows for export": return "rijen om te exporteren";
-        case "Next": return "Volgende";
-        case "Previous": return "Vorige";
-        case "Field": return "Veld";
-        case "may not be empty": return "mag niet leeg zijn";
-        default: return str;
+$.ajax({
+  method: 'get',
+  url: ajaxUrl,
+  dataType: 'json',
+  data: { mode: 'transl' },
+  success: function(data) {
+    if (data.error) alert(data.error);
+    else if (data.strings) {
+      for (let item of data.strings) {
+        transl[item[0]] = item;
       }
-    default: return str;
+    }
   }
+});
+
+function tr(str) {
+  if (lang == 0) return str;
+  if (transl.hasOwnProperty(str) && (transl[str][lang] !== null)) return transl[str][lang];
+  return str;
 }
 
 function escape(val) {
@@ -87,8 +84,8 @@ function load(el, visible) {
     controls = el.find('.lt-control:visible');
   }
   else {
-    tables = el.find('.lt-div:visible');
-    controls = el.find('.lt-control:visible');
+    tables = el.find('.lt-div');
+    controls = el.find('.lt-control');
   }
 
   tables.each(function() {
@@ -125,7 +122,7 @@ function refreshText(div) {
   $.ajax({
     dataType: "json",
     url: ajaxUrl,
-    data: "mode=refreshtext&src=" + attr.source + "&params=" + (attr.params || ""),
+    data: "mode=refreshtext&src=" + attr.source,
     context: div,
     success: function(data) {
       if (data.error) appError(data.error, this);
@@ -139,7 +136,7 @@ function loadOrRefreshCollection(coll, sub) {
     let div = $(this);
     if (div.hasClass('lt-div')) {
       let attr = div.data();
-      let key = attr.source + (attr.params?'_' + attr.params:'');
+      let key = attr.source;
       if (!tables[key] || !document.getElementById(key)) loadTable(div, attr, sub); // Using getElementById() because jQuery gets confused by the colon in the id
       else refreshTable(div.find('table'), key);
     }
@@ -153,7 +150,7 @@ jQuery.fn.extend({
       el.find('.lt-div').each(function() {
         let div = $(this);
         let attr = div.data();
-        let key = attr.source + (attr.params?'_' + attr.params:'');
+        let key = attr.source;
         if (!tables[key] || !document.getElementById(key)) loadTable(div, attr); // Using getElementById() because jQuery gets confused by the colon in the id
         else refreshTable(div.find('table'), key);
       });
@@ -216,12 +213,14 @@ function doFunction(button, addparam) {
   }
   else if (button.hasClass('lt-rowfunc')) {
     let actionid = button.parent().data('actionid');
+    let data = tables[key].data;
+    data.active = button.closest('.lt-row').data('rowid');
     $.ajax({
       method: 'post',
       url: ajaxUrl,
       dataType: 'json',
-      context: tables[key].data,
-      data: { mode: 'function', type: 'row', src: tables[key].data.block + ':' + tables[key].data.tag, params: paramstr, row: button.closest('.lt-row').data('rowid'), action: actionid },
+      context: data,
+      data: { mode: 'function', type: 'row', src: data.block + ':' + data.tag, params: paramstr, row: data.active, action: actionid },
       success: function(data) {
         let action = this.options.actions[actionid];
         if (data.error) appError(data.error, table);
@@ -242,6 +241,7 @@ function doFunction(button, addparam) {
             }
             window[action.functionname](data.output);
           }
+          else console.log('Action for source ' + tables[key].data.block + ':' + tables[key].data.tag + ' returned output: ' + data.output);
         }
         refreshTable(table, key);
         if (this.options.trigger) loadOrRefreshCollection($('#' + this.options.trigger));
@@ -307,28 +307,28 @@ function doFunction(button, addparam) {
 //   }
 // }
 
-function changeParams(div, params) {
-  let attr = div.data();
-  let key = attr.source + (attr.params?'_' + attr.params:'');
-  if (typeof params === 'string') {
-    if (params === attr.params) {
-      refreshTable(div.find('table').first(), key);
-      return;
-    }
-    attr.params = params;
-  }
-  else {
-    let str = btoa(JSON.stringify(params));
-    if (str === attr.params) {
-      refreshTable(div.find('table').first(), key);
-      return;
-    }
-    attr.params = str;
-  }
-  if (tables[key]) delete tables[key];
-  div.html("Loading...");
-  loadTable(div, attr);
-}
+// function changeParams(div, params) {
+//   let attr = div.data();
+//   let key = attr.source + (attr.params?'_' + attr.params:'');
+//   if (typeof params === 'string') {
+//     if (params === attr.params) {
+//       refreshTable(div.find('table').first(), key);
+//       return;
+//     }
+//     attr.params = params;
+//   }
+//   else {
+//     let str = btoa(JSON.stringify(params));
+//     if (str === attr.params) {
+//       refreshTable(div.find('table').first(), key);
+//       return;
+//     }
+//     attr.params = str;
+//   }
+//   if (tables[key]) delete tables[key];
+//   div.html("Loading...");
+//   loadTable(div, attr);
+// }
 
 function loadControl(div, attr) {
   let options = JSON.parse(atob(attr.options));
@@ -361,11 +361,20 @@ function loadControl(div, attr) {
 }
 
 function loadTable(div, attr, sub) {
-  if (attr.params === "-") return;
-  let key = attr.source + (attr.params?'_' + attr.params:'');
+  let key = attr.source;
   let table = $('<table id="' + key + '" class="lt-table"/>');
 
-  if (tables[key]) {
+  if (attr.embedded) {
+    tables[key] = {};
+    tables[key].table = table;
+    let json = atob(attr.embedded.replace(/\n/g, ''));
+    let data = JSON.parse(json);
+    tables[key].data = data;
+    renderTable(table, data);
+    div.empty().append(tables[key].table);
+    div.removeAttr('embedded');
+  }
+  else if (tables[key]) {
     if (tables[key].doingajax) {
       console.log('Skipping load for', key, '(already in progress)');
       return;
@@ -376,16 +385,6 @@ function loadTable(div, attr, sub) {
     div.empty().append(tables[key].table);
     refreshTable(table, key);
   }
-  else if (attr.embedded) {
-    tables[key] = {};
-    tables[key].table = table;
-    let json = atob(attr.embedded.replace(/\n/g, ''));
-    let data = JSON.parse(json);
-    tables[key].data = data;
-    renderTable(table, data);
-    div.empty().append(tables[key].table);
-    div.removeAttr('embedded');
-  }
   else {
     tables[key] = {};
     tables[key].table = table;
@@ -394,7 +393,7 @@ function loadTable(div, attr, sub) {
     $.ajax({
       dataType: "json",
       url: ajaxUrl,
-      data: "mode=gettable&src=" + attr.source + (attr.params ? "&params=" + attr.params : ""),
+      data: "mode=gettable&src=" + attr.source,
       context: div,
       success: function(data) {
         if (data.error) {
@@ -427,7 +426,7 @@ function refreshTable(table, key) {
     dataType: "json",
     url: ajaxUrl,
     data: "mode=refreshtable&src=" + tables[key].data.block + ':' + tables[key].data.tag +
-          "&crc=" + tables[key].data.crc + (tables[key].data.params ? "&params=" + tables[key].data.params : ""),
+          "&crc=" + tables[key].data.crc,
     context: table,
     success: function(data) {
       if (data.error) appError(data.error, this);
@@ -502,7 +501,7 @@ function colVisualToReal(data, idx) {
   if (data.options.showid) idx--;
   if (data.options.selectone) idx--;
   if (data.options.selectany) idx--;
-  for (c = 0; c <= data.headers.length; c++) {
+  for (let c = 0; c <= data.headers.length; c++) {
     if (data.options.mouseover && data.options.mouseover[c]) idx++;
     else if (data.options.hidecolumn && data.options.hidecolumn[c]) idx++;
     if (c == idx) return c;
@@ -588,21 +587,21 @@ function renderTable(table, data, sub) {
               ' download ' + (data.downloadtime?data.downloadtime:'n/a') + ' render ' + (Date.now()-start) + ' ms');
 }
 
-function renderTableVertical(table, data) {
-  table.addClass('lt-insert');
-  for (id in data.options.insert) {
-    if (!$.isNumeric(id)) continue;
-    let input = renderField(data.options.insert[id], data, id);
-    let name;
-    if (data.options.insert[id].name !== undefined) name = data.options.insert[id].name;
-    else name = input.attr('name').split('.')[1];
-    let label = '<label for="' + input.attr('name') + '">' + name + '</label>';
-    let row = $('<tr><td class="lt-form-label">' + label + '</td><td class="lt-form-input"></td></tr>');
-    row.find('.lt-form-input').append(input);
-    table.append(row);
-  }
-  table.append('<tr><td colspan="2"><input type="button" class="lt-insert-button" value="' + tr('Insert') + '" onclick="doInsert(this)"></td></tr>');
-}
+// function renderTableVertical(table, data) {
+//   table.addClass('lt-insert');
+//   for (id in data.options.insert) {
+//     if (!$.isNumeric(id)) continue;
+//     let input = renderField(data.options.insert[id], data, id);
+//     let name;
+//     if (data.options.insert[id].name !== undefined) name = data.options.insert[id].name;
+//     else name = input.attr('name').split('.')[1];
+//     let label = '<label for="' + input.attr('name') + '">' + name + '</label>';
+//     let row = $('<tr><td class="lt-form-label">' + label + '</td><td class="lt-form-input"></td></tr>');
+//     row.find('.lt-form-input').append(input);
+//     table.append(row);
+//   }
+//   table.append('<tr><td colspan="2"><input type="button" class="lt-insert-button" value="' + tr('Insert') + '" onclick="doInsert(this)"></td></tr>');
+// }
 
 function renderTableSelect(table, data, sub) {
   let section = $('<section class="lt-select"><h3>' + data.title + '</h3>');
@@ -720,20 +719,32 @@ function renderTableFormat(table, data, sub) {
     headstr += ' <a href="javascript:goPage(\'' + table.attr('id') + '\', \'next\')"><span class="lt-page-control">&gt;</span></a></th></tr>';
   }
 
-  let thead = $(headstr);
-
-  if (data.options.pagetitle) document.title = replaceHashes(data.options.pagetitle, data.rows[offset]);
+  let thead = $('<thead>' + headstr + '</thead>');
 
   let tbody, fmt;
   if (data.options.format.indexOf('I') < 0) tbody = $('<tbody/>');
   else tbody = $('<tbody class="lt-insert"/>');
-  if (typeof(data.options.format) == 'string') fmt = data.options.format.split('\n');
-  else fmt = data.options.format;
+
+  if (data.options.pagetitle && data.rows && data.rows[offset]) {
+    document.title = replaceHashes(data.options.pagetitle, data.rows[offset]);
+  }
+
+  renderTableFormatBody(tbody, data, offset);
+  table.append(thead, tbody);
+  table.parent().data('crc', data.crc);
+
+  if (data.options.subtables) loadOrRefreshCollection(tbody.find('.lt-div'), true);
+}
+function renderTableFormatBody(tbody, data, offset) {
   let headcount = 0;
   let colcount = 0;
   let inscount = 0;
   let colspan;
   let rowspan = 0;
+  let fmt;
+
+  if (typeof(data.options.format) == 'string') fmt = data.options.format.split('\n');
+  else fmt = data.options.format;
 
   for (let r = 0; fmt[r]; r++) {
     let row = $('<tr class="lt-row" data-rowid="' + (data.rows && data.rows[offset]?data.rows[offset][0]:0) + '"/>');
@@ -747,7 +758,7 @@ function renderTableFormat(table, data, sub) {
         for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
         for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
         let tdstr = '<td class="lt-head"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
-        tdstr += data.headers[headcount] + '</td>';
+        tdstr += tr(data.headers[headcount]) + '</td>';
         row.append(tdstr);
       }
       else if (fmt[r][c] == 'C') {
@@ -783,7 +794,9 @@ function renderTableFormat(table, data, sub) {
         for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
         for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
         let td = $('<td class="lt-cell"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '/>');
-        td.append(renderField(insert, data, colid));
+        let input = renderField(insert, data, colid);
+        if (input.prop('required')) td.addClass('lt-input-required');
+        td.append(input);
         row.append(td);
       }
       else if (fmt[r][c] == 'S') {
@@ -803,15 +816,10 @@ function renderTableFormat(table, data, sub) {
     }
     tbody.append(row);
   }
-
-  table.append(thead, tbody);
-  table.parent().data('crc', data.crc);
-
-  if (data.options.subtables) loadOrRefreshCollection(tbody.find('.lt-div'), true);
 }
 
 function renderTitle(data) {
-  let str = '<tr><th class="lt-title" colspan="' + (data.headers.length+1) + '">' + data.title;
+  let str = '<tr><th class="lt-title" colspan="' + (data.headers.length+1) + '">' + escape(tr(data.title));
   // if (data.options.popout && (data.options.popout.type == 'floating-div')) {
   //   str += '<span class="lt-popout ' + (data.options.popout.icon_class?data.options.popout.icon_class:"");
   //   str += '" onclick="showTableInDialog($(this).closest(\'table\'));"></span>';
@@ -821,26 +829,18 @@ function renderTitle(data) {
   //   str += 'onclick="toggleTableFullscreen($(this).closest(\'table\'));"></span>';
   // }
   if (data.options.tablefunction && data.options.tablefunction.text) {
-    let params, disp;
-    if (data.params) {
-      params = JSON.parse(atob(data.params));
-      params.unshift('');
-    }
-    else params = [];
+    let disp;
     if (data.options.tablefunction.hidecondition) disp = ' style="display: none;"';
     else disp = '';
     if (data.options.tablefunction.confirm) {
-      str += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="if (confirm(\'' + replaceHashes(data.options.tablefunction.confirm, params);
-      str += '\')) doFunction(this);" value="' + replaceHashes(data.options.tablefunction.text, params) + '">';
+      str += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="if (confirm(\'' + tr(data.options.tablefunction.confirm);
+      str += '\')) doFunction(this);" value="' + tr(data.options.tablefunction.textparams) + '">';
     }
     else if (data.options.tablefunction.addparam && data.options.tablefunction.addparam.text) {
-      str += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="if ((ret = prompt(\'' + replaceHashes(data.options.tablefunction.addparam.text, params);
-      str += '\')) != null) doFunction(this, ret);" value="' + replaceHashes(data.options.tablefunction.text, params) + '">';
+      str += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="if ((ret = prompt(\'' + tr(data.options.tablefunction.addparam.text);
+      str += '\')) != null) doFunction(this, ret);" value="' + tr(data.options.tablefunction.text) + '">';
     }
-    else {
-      str += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="doFunction(this);" value="';
-      str += replaceHashes(data.options.tablefunction.text, params) + '">';
-    }
+    else str += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="doFunction(this);" value="' + escape(tr(data.options.tablefunction.text)) + '">';
   }
   str += '</th></tr>';
  return str;
@@ -888,7 +888,7 @@ function renderHeaders(data, id) {
         else classes.push('lt-sort');
       }
     }
-    str += '<td class="' + classes.join(' ') + '" onclick="' + onclick + '">' + escape(data.headers[c]) + '</td>';
+    str += '<td class="' + classes.join(' ') + '" onclick="' + onclick + '">' + escape(tr(data.headers[c])) + '</td>';
   }
   str += '</tr>';
 
@@ -1012,8 +1012,8 @@ function renderInsert(data) {
       break;
     }
     else {
-      if ((typeof(fields[c]) == 'object') && fields[c].label) str = '<td class="lt-head">' + fields[c].label + '</td>';
-      else str = '<td class="lt-head">' + data.headers[c] + '</td>';
+      if ((typeof(fields[c]) == 'object') && fields[c].label) str = '<td class="lt-head">' + tr(fields[c].label) + '</td>';
+      else str = '<td class="lt-head">' + tr(data.headers[c]) + '</td>';
     }
     row.append(str);
   }
@@ -1036,7 +1036,9 @@ function renderInsert(data) {
     let classes = [ 'lt-cell' ];
     if (data.options.class && data.options.class[c]) classes.push(data.options.class[c]);
     cell.addClass(classes.join(' '));
-    cell.append(renderField(fields[c], data, c));
+    let input = renderField(fields[c], data, c);
+    if (input.prop('required')) cell.addClass('lt-input-required');
+    cell.append(input);
     if (insert) cell.append(insert);
     row.append(cell);
   }
@@ -1063,25 +1065,25 @@ function renderInsertButton(fields, colspan, rowspan) {
 
 function renderField(field, data, c) {
   let input;
-  if (typeof(field) == 'string') input = $('<input type="text" class="lt-insert-input" name="' + field + '">');
-  else if (Object.keys(field).length == 1) input = $('<input type="text" class="lt-insert-input" name="' + field[0] + '">');
-  else if (field.type == 'multiline') {
-    input = $('<textarea class="lt_insert" class="lt-insert-input" name="' + field.target + '" oninput="$(this).textareaAutoSize();"/>');
-  }
-  else if (field.type == 'checkbox') input = $('<input type="checkbox" class="lt-insert-input" name="' + field.target + '">');
+  if (field.type == 'checkbox') input = $('<input type="checkbox" class="lt-insert-input" name="' + field.target + '">');
   else if (field.type == 'date') input = $('<input type="date" class="lt-insert-input" name="' + field.target + '" value="' + new Date().toISOString().slice(0, 10) + '">');
   else if (field.type == 'password') input = $('<input type="password" class="lt-insert-input" name="' + field.target + '">');
   else if (field.type == 'email') input = $('<input type="email" class="lt-insert-input" name="' + field.target + '">');
   else if (field.type == 'color') input = $('<input type="text" class="lt-insert-input lt-color-cell" name="' + field.target + '" onfocus="showColPick(this)">');
+  else if (field.type == 'multiline') {
+    input = $('<textarea class="lt_insert" class="lt-insert-input" name="' + field.target + '" oninput="$(this).textareaAutoSize();"/>');
+  }
   else if (field.type == 'number') {
     input = $('<input type="number" class="lt-insert-input" name="' + field.target + '">');
     if (field.min) input.attr('min', field.min);
     if (field.max) input.attr('max', field.max);
   }
-  else if (field.target && !field.query) input = $('<input type="text" class="lt-insert-input" name="' + field.target + '">');
+  else if (field.type == 'file') {
+    input = $('<input type="file" class="lt-insert-input" name="' + field.target + '">');
+  }
+  else if (!field.query) input = $('<input type="text" class="lt-insert-input" name="' + field.target + '">');
   else {
-    if (field.target) input = $('<select class="lt-insert-input" name="' + field.target + '"/>');
-    else input = $('<select class="lt-insert-input" name="' + field[0] + '"/>');
+    input = $('<select class="lt-insert-input" name="' + field.target + '"/>');
     if (field.default) input.default = field.default;
     if (field.defaultid) input.defaultid = field.defaultid;
     if (field.insert || field[2]) {
@@ -1096,34 +1098,23 @@ function renderField(field, data, c) {
         insert = $('<input type="button" class="lt-add-option" value="➕" onclick="switchToText(this, \'' + target + '\');">');
       }
     }
-    loadOptions(input, data, c);
+    if (!field.list) loadOptions(input, data, c);
+    else {
+      lists[field.query] = field.list;
+      renderOptions(input, field.list, field.required?true:false);
+    }
   }
-  if ((typeof field == 'object') && field.required) {
-    input.addClass('lt-input-required');
-    input.on('input', field.required, function(evt) {
-      if (evt.data === true) {
-        input = $(this);
-        if ((input.val() === '') || (input.val() === null)) input.addClass('lt-input-error');
-        else input.removeClass('lt-input-error');
-      }
-      else if (evt.data.regex) {
-        input = $(this);
-        if (input.val().search(new RegExp(evt.data.regex)) >= 0) {
-          input.removeClass('lt-input-error');
-          input.attr('title', '');
-        }
-        else {
-          input.addClass('lt-input-error');
-          if (evt.data.message) input.attr('title', evt.data.message);
-        }
-      }
-    });
+  if (field.required && (field.type != 'checkbox')) {
+    input.prop('required', true);
+    if (field.required.regex) input.prop('pattern', field.required.regex);
+    if (field.required.message) input.prop('title', field.required.message);
   }
   if (field.default) {
     input.val(field.default);
     input.data('default', field.default);
   }
   if (field.placeholder) input.attr('placeholder', field.placeholder);
+  if (field.domid) input.attr('id', field.domid);
   if (field.class) input.addClass(field.class);
   return input;
 }
@@ -1141,32 +1132,51 @@ function showColPick(el) {
 }
 
 function loadOptions(input, data, c) {
+  let query;
+  let insert;
+  if (data.options.insert[c]) insert = data.options.insert[c]
+  else if ((data.options.insert.include == 'edit') && (data.options.edit[c])) insert = data.options.edit[c];
+  else {
+    console.log('Insert configuration for table ' + data.tag + ' column ' + c + ' not found');
+    return;
+  }
+  let params = { mode: 'selectbox', src: data.block + ':' + data.tag, col: c };
+  if (query && lists[query]) {
+    params.crc = lists[query].crc;
+    renderOptions(input, lists[query], insert.required?true:false);
+  }
   $.ajax({
     method: 'get',
     url: ajaxUrl,
     dataType: 'json',
     context: input,
-    data: { mode: 'selectbox', src: data.block + ':' + data.tag, params: data.params, col: c },
+    data: params,
     success: function(data) {
       if (data.error) {
         this.parent().css({ backgroundColor: '#ffa0a0' });
         appError(data.error, this);
       }
+      else if (data.nochange);
       else {
-        let items = data.items;
-        if (data.null) this.append('<option value=""></option>');
-        for (let i = 0; items[i]; i++) {
-          let selected;
-          if (this.default && (this.default == items[i][1])) selected = ' selected';
-          else if (this.defaultid && (this.defaultid == items[i][0])) selected = ' selected';
-          else selected = '';
-          this.append('<option value="' + items[i][0] + '"' + selected + '>' + items[i][1] + '</option>');
-        }
-        if (!this.default && !this.defaultid) this.prop('selectedIndex', -1); // This selects nothing, rather than the first option
+        lists[query] = data;
+        renderOptions(this, data, insert.required?true:false);
       }
     }
   });
 }
+function renderOptions(select, list, required) {
+  select.empty();
+  if (!required) select.append('<option value=""></option>');
+  for (let i = 0; list.items[i]; i++) {
+    let selected;
+    if (list.default && (list.default == list.items[i][1])) selected = ' selected';
+    else if (list.defaultid && (list.defaultid == list.items[i][0])) selected = ' selected';
+    else selected = '';
+    select.append('<option value="' + list.items[i][0] + '"' + selected + '>' + list.items[i][1] + '</option>');
+  }
+  if (!list.default && !list.defaultid) select.prop('selectedIndex', -1); // This selects nothing, rather than the first option
+}
+
 function addOption(el, c) {
   let option = prompt(tr('New entry:'));
   if (!option) return;
@@ -1176,7 +1186,7 @@ function addOption(el, c) {
     url: ajaxUrl,
     dataType: 'json',
     context: el,
-    data: { mode: 'addoption', src: tables[key].data.block + ':' + tables[key].data.tag, params: tables[key].data.params, col: c, option: option },
+    data: { mode: 'addoption', src: tables[key].data.block + ':' + tables[key].data.tag, col: c, option: option },
     success: function(data) {
       if (data.error) return appError(data.error, this);
       if (!data.insertid) return appError("Mode addoption didn't return an insert id");
@@ -1221,7 +1231,7 @@ function switchToSelect(el) {
 // }
 
 function isFiltered(filters, row, options) {
-  for (i in filters) {
+  for (let i in filters) {
     if (filters[i] instanceof RegExp) {
       if ((typeof row[i] == 'string') && (row[i].search(filters[i]) >= 0)) continue;
       if (typeof row[i] == 'boolean') {
@@ -1321,7 +1331,7 @@ function renderCell(options, row, c, element) {
   if (!element) element = 'td';
   let input, onclick;
   let classes = [ "lt-cell", "lt-data" ];
-  if (options.class && options.class[c]) classes.push(options.class[c]);
+  if (options.classes && options.classes[c]) classes.push(options.classes[c]);
   if (options.edit && options.edit[c]) {
     classes.push('lt-edit');
     if (typeof(options.edit[c]) == 'string') onclick = ' onclick="doEdit(this)"';
@@ -1350,14 +1360,7 @@ function renderCell(options, row, c, element) {
   else style = '';
 
   if (options.subtables && (options.subtables[c])) {
-    let params;
-    if (typeof(row[c]) == 'string') {
-      if (row[c].startswith('[')) params = btoa(row[c]);
-      else params = btoa('[ "' + row[c] + '" ]');
-    }
-    else if (typeof(row[c]) == 'number') params = btoa('[ ' + row[c] + ' ]');
-    else params = '';
-    content = '<div class="lt-div" data-source="' + options.subtables[c] + '" data-params="' + params + '" data-sub="true">Loading subtable ' + options.subtables[c] + '</div>';
+    content = '<div class="lt-div" data-source="' + options.subtables[c] + '" data-sub="true">Loading subtable ' + options.subtables[c] + '</div>';
   }
   else if (options.transformations && options.transformations[c] && options.transformations[c].image) {
     content = '<img src="' + replaceHashes(options.transformations[c].image, row) + '">';
@@ -1383,7 +1386,7 @@ function renderActions(actions, row) {
     if (actions[i].condition) {
       if (!eval(replaceHashes(actions[i].condition, row))) str += ' style="display: none;"';
     }
-    str += '><input type="button" class="lt-rowfunc" value="' + replaceHashes(actions[i].name, row) + '" onclick="doFunction(this)"></td>';
+    str += '><input type="button" class="lt-rowfunc" value="' + replaceHashes(escape(tr(actions[i].name)), row) + '" onclick="doFunction(this)"></td>';
   }
   return str;
 }
@@ -1400,7 +1403,7 @@ function calcSums(tfoot, data, update) {
   for (let c = 1; c < data.headers.length; c++) {
     if (data.options.mouseover && data.options.mouseover[c]) continue;
     let classes = [ "lt-cell", "lt-sum" ];
-    if (data.options.class && data.options.class[c]) classes.push(data.options.class[c]);
+    if (data.options.classes && data.options.classes[c]) classes.push(data.options.class[c]);
     if (data.options.sum[c]) {
       let sum = 0, content;
       for (let r = 0; r < data.rows.length; r++) {
@@ -1459,6 +1462,28 @@ function updateTable(tbody, data, newrows) {
     tbody.prepend('<tr class="lt-row"><td class="lt-cell lt-empty-placeholder" colspan="' + data.headers.length + '">' + data.options.textifempty + '</td></tr>');
   }
 
+  if (data.options.format) {
+    let rowid = tbody.find('.lt-row').data('rowid');
+    if (rowid) {
+      for (let i = 0; i < oldrows.length; i++) {
+        if (oldrows[i][0] == rowid) {
+          for (let j = 0; j < newrows.length; j++) {
+            if (newrows[j][0] == rowid) {
+              updateRow(data.options, tbody, oldrows[i], newrows[j]);
+              return;
+            }
+          }
+          break;
+        }
+      }
+    }
+
+    data.rows = newrows;
+    if (data.options.page < newrows.length) data.options.page = newrows.length;
+    renderTableFormatBody(tbody.empty(), data, data.options.page-1);
+    return;
+  }
+
   for (let i = 0, found; i < oldrows.length; i++) {
     found = 0;
     for (let j = 0; j < newrows.length; j++) {
@@ -1484,16 +1509,12 @@ function updateTable(tbody, data, newrows) {
       }
     }
   }
-  if (data.options.format) {
-    // Update page-number here
-  }
-  else {
-    for (let i = 0; i < newrows.length; i++) { // Row added
-      let row = $(renderRow(data.options, newrows[i]));
-      row.css({ 'background-color': 'green' });
-      tbody.append(row);
-      setTimeout(function(row) { row.css({ 'background-color': '' }); }, 1000, row);
-    }
+  for (let i = 0; i < newrows.length; i++) { // Row added
+    if (data.options.format && (i+1 != data.options.page)) continue;
+    let row = $(renderRow(data.options, newrows[i]));
+    row.css({ 'background-color': 'green' });
+    tbody.append(row);
+    setTimeout(function(row) { row.css({ 'background-color': '' }); }, 1000, row);
   }
   console.log('Refresh timings for table ' + data.tag + ': sql ' + data.querytime + ' download ' + data.downloadtime + ' render ' + (Date.now()-start) + ' ms');
 }
@@ -1519,9 +1540,12 @@ function updateRow(options, tbody, oldrow, newrow) {
         }
       }
     }
-    else if (options.hidecolumn && options.hidecolumn[c]) offset++;
     else if (oldrow[c] != newrow[c]) {
       changes = true;
+      if (options.hidecolumn && options.hidecolumn[c]) {
+        offset++;
+        continue;
+      }
       if (options.format) cell = tbody.find('.lt-data').eq(c-1);
       else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').children().eq(c-offset);
       if (cell) {
@@ -1546,6 +1570,15 @@ function updateRow(options, tbody, oldrow, newrow) {
   if (changes) {
     let cell;
     if (options.pagetitle) document.title = replaceHashes(options.pagetitle, newrow);
+    if (options.actions) {
+      if (options.format) cell = tbody.find('.lt-action');
+      else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').find('.lt-action');
+      if (cell.length) {
+        let row = cell.parent();
+        cell.remove();
+        row.append(renderActions(options.actions, newrow));
+      }
+    }
     if (options.appendcell) {
       if (options.format) cell = tbody.find('.lt-append');
       else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').find('.lt-append');
@@ -1555,15 +1588,6 @@ function updateRow(options, tbody, oldrow, newrow) {
           cell.text(content);
           cell.css('background-color', 'green');
           setTimeout(function(cell) { cell.css('background-color', ''); }, 2000, cell);
-        }
-      }
-    }
-    if (options.actions) {
-      for (let i in options.actions) {
-        if (options.actions[i].condition) {
-          cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').find('.lt-action[data-actionid="' + i + '"]');
-          if (eval(replaceHashes(options.actions[i].condition, newrow))) cell.show();
-          else cell.hide();
         }
       }
     }
@@ -1637,7 +1661,10 @@ function renderEdit(edit, cell, content, handler) {
     input = $('<input type="file" id="editbox" name="input">');
   }
   else {
-    input = $('<input type="text" id="editbox" name="input" value="' + escape(content) + '" style="width: ' + cell.width() + 'px; height: ' + cell.height() + 'px;">');
+    let pattern;
+    if (edit.pattern) pattern = ' pattern="' + edit.pattern + '"';
+    else pattern = '';
+    input = $('<input type="text" id="editbox" name="input" value="' + escape(content) + '"' + pattern + ' style="width: ' + cell.width() + 'px; height: ' + cell.height() + 'px;">');
   }
   return input;
 }
@@ -1729,19 +1756,22 @@ function doEdit(cell, newcontent) {
 }
 
 function doSelect(el) {
-  input = $(el);
+  let input = $(el);
+  let key = input.closest('table').attr('id');
+  let id = input.closest('tr').data('rowid');
   input.parent().css('background-color', 'red');
-  key = input.closest('table').attr('id');
-  id = input.closest('tr').data('rowid');
   $.ajax({
     method: 'post',
     url: ajaxUrl,
     dataType: 'json',
     context: input,
-    data: { mode: 'select', src: tables[key].data.block + ':' + tables[key].data.tag, params: tables[key].data.params, id: id, link: input.prop('checked') },
+    data: { mode: 'select', src: tables[key].data.block + ':' + tables[key].data.tag, id: id, link: input.prop('checked') },
     success: function(data) {
       if (data.error) appError(data.error, this);
-      else this.parent().css('background-color', '');
+      else {
+        this.parent().css('background-color', '');
+        if (tables[key].data.options.trigger) loadOrRefreshCollection($('#' + tables[key].data.options.trigger));
+      }
     }
   });
 }
@@ -1750,72 +1780,86 @@ function doEditSelect(cell) {
   if (cell.hasClass('lt-editing')) return;
   cell.addClass('lt-editing');
   let key = cell.closest('table').attr('id');
-  let content = cell.text(), c;
+  let content = cell.text(), c, query;
   if (tables[key].data.options.format) c = cell.closest('tbody').find('.lt-data').index(cell)+1;
   else c = cell.parent().children('.lt-data').index(cell)+1;
+  let edit = tables[key].data.options.edit[c];
+
+  let params = { mode: 'selectbox', src: tables[key].data.block + ':' + tables[key].data.tag, col: c }
+  if (lists[edit.query]) {
+    params.crc = lists[edit.query].crc;
+    loadSelectbox(cell, lists[edit.query], content, edit.required?true:false);
+  }
   $.ajax({
     method: 'get',
     url: ajaxUrl,
     dataType: 'json',
+    cache: true,
     context: cell,
-    data: { mode: 'selectbox', src: tables[key].data.block + ':' + tables[key].data.tag, col: c },
+    data: params,
     success: function(data) {
       if (data.error) appError(data.error, cell);
+      else if (data.nochange) this.css({ backgroundColor: '' });
       else {
-        let oldvalue = null;
-        this.css({ backgroundColor: 'transparent' });
-        let items = data.items;
-        let selectbox = $('<select id="editbox"></select>');
-        selectbox.css({ maxWidth: this.width() + 'px', minHeight: this.height() + 'px' });
-        let selected = 0;
-        if (data.null) selectbox.append('<option value=""></option>');
-        for (let i = 0; items[i]; i++) {
-          if (items[i][1] == content) {
-             selectbox.append('<option value="' + items[i][0] + '" selected>' + items[i][1] + '</option>');
-             oldvalue = String(items[i][0]);
-             selected = 1;
-          }
-          else selectbox.append('<option value="' + items[i][0] + '">' + items[i][1] + '</option>');
-        }
-        this.empty().append(selectbox);
-        if (data.insert) this.append('<input type="button" class="lt-add-option" value="➕" onclick="addOption(this, ' + c + ');">');
-        if (!selected) selectbox.prop('selectedIndex', -1);
-        selectbox.focus();
-        selectbox.on('keydown', this, function(evt) {
-          let cell = evt.data;
-          if (evt.which == 27) cell.text(content); // Escape
-          else if (evt.which == 13) checkEdit(cell, selectbox, oldvalue); // Enter
-          else if (evt.keyCode == 9) { // Tab
-            checkEdit(cell, selectbox, oldvalue);
-            if (evt.shiftKey) cell.prev().trigger('click');
-            else findNextEdit(cell, evt);
-          }
-          else {
-            return true; // Allow default action (for instance list searching)
-//            if (selectbox.data('filter')) {
-//              if (evt.which == 8) selectbox.data('filter', selectbox.data('filter').substring(0, selectbox.data('filter').length-1));
-//              else selectbox.data('filter', selectbox.data('filter') + String.fromCharCode(evt.keyCode));
-//              console.log(selectbox.data('filter'));
-//              selectbox.find('option').each(function() {
-//                let option = $(this);
-//                let regex = new RegExp(option.parent().data('filter'),"i")
-//                if (option.text().search(regex) != -1) option.removeProp('hidden');
-//                else option.prop('hidden', 'hidden');
-//              });
-//            }
-//            else selectbox.data('filter', String.fromCharCode(evt.keyCode));
-          }
-          cell.removeClass('lt-editing');
-          return false;
-        });
-        selectbox.on('blur', this, function(evt) {
-          checkEdit(evt.data, $(this), oldvalue);
-          evt.data.removeClass('lt-editing');
-        });
+        lists[edit.query] = data;
+        loadSelectbox(this, data, content, edit.required?true:false);
+        this.css({ backgroundColor: '' });
       }
     }
   });
   cell.css({ backgroundColor: '#ffa0a0' });
+}
+
+function loadSelectbox(cell, list, content, required) {
+  let oldvalue = null;
+  let selectbox = $('<select id="editbox"></select>');
+  selectbox.css({ maxWidth: cell.width() + 'px', minHeight: cell.height() + 'px' });
+  let selected = 0;
+  if (!required) selectbox.append('<option value=""></option>');
+  for (let i = 0; list.items[i]; i++) {
+    if (list.items[i][1] == content) {
+       selectbox.append('<option value="' + list.items[i][0] + '" selected>' + list.items[i][1] + '</option>');
+       oldvalue = String(list.items[i][0]);
+       selected = 1;
+    }
+    else selectbox.append('<option value="' + list.items[i][0] + '">' + list.items[i][1] + '</option>');
+  }
+  cell.empty().append(selectbox);
+  if (list.insert) this.append('<input type="button" class="lt-add-option" value="➕" onclick="addOption(this, ' + c + ');">');
+  if (!selected) selectbox.prop('selectedIndex', -1);
+  selectbox.focus();
+  selectbox.on('keydown', cell, function(evt) {
+    let cell = evt.data;
+    if (evt.which == 27) cell.text(content); // Escape
+    else if (evt.which == 13) checkEdit(cell, selectbox, oldvalue); // Enter
+    else if (evt.keyCode == 9) { // Tab
+      checkEdit(cell, selectbox, oldvalue);
+      if (evt.shiftKey) cell.prev().trigger('click');
+      else findNextEdit(cell, evt);
+    }
+    else {
+      return true; // Allow default action (for instance list searching)
+  //            if (selectbox.data('filter')) {
+  //              if (evt.which == 8) selectbox.data('filter', selectbox.data('filter').substring(0, selectbox.data('filter').length-1));
+  //              else selectbox.data('filter', selectbox.data('filter') + String.fromCharCode(evt.keyCode));
+  //              console.log(selectbox.data('filter'));
+  //              selectbox.find('option').each(function() {
+  //                let option = $(this);
+  //                let regex = new RegExp(option.parent().data('filter'),"i")
+  //                if (option.text().search(regex) != -1) option.removeProp('hidden');
+  //                else option.prop('hidden', 'hidden');
+  //              });
+  //            }
+  //            else selectbox.data('filter', String.fromCharCode(evt.keyCode));
+    }
+    cell.removeClass('lt-editing');
+    return false;
+  });
+  selectbox.on('blur', cell, function(evt) {
+    checkEdit(evt.data, $(this), oldvalue);
+    evt.data.removeClass('lt-editing');
+  });
+  selectbox.on('click', 'option', function() { this.parentNode.blur(); return false; });
 }
 
 function checkRequirements(options, c, value) {
@@ -1825,7 +1869,7 @@ function checkRequirements(options, c, value) {
       return false;
     }
   }
-  else if (typeof options.edit[c].required == 'object') {
+  else {
     if (options.edit[c].required.regex) {
       if (value.search(new RegExp(options.edit[c].required.regex)) >= 0) return true;
       if (options.edit[c].required.message) alert(options.edit[c].required.message);
@@ -1867,12 +1911,11 @@ function checkEdit(cell, edit, oldvalue) {
     oldvalue = null;
   }
 
-  if ((typeof oldvalue == 'undefined') || (newvalue !== oldvalue)) {
+  if ((typeof oldvalue == 'undefined') || (newvalue !== oldvalue) || cell.hasClass('lt-notsaved')) {
     if (options.edit[c].required) {
       if (!checkRequirements(options, c, newvalue)) return false;
     }
     let data = { mode: 'inlineedit', src: tables[key].data.block + ':' + tables[key].data.tag, col: c, row: cell.parent().data('rowid'), val: newvalue };
-    if (tables[key].data.params) data['params'] = tables[key].data.params;
     if (options.sql) data['sql'] = options.sql;
     $.ajax({
       method: 'post',
@@ -1883,8 +1926,9 @@ function checkEdit(cell, edit, oldvalue) {
       success: function(data) {
         if (data.error) userError(data.error);
         else {
+          this.removeClass('lt-notsaved');
           tables[key].data.crc = '-';
-          if (!options.style || !options.style[c]) this.css({ backgroundColor: 'transparent' });
+          // if (!options.style || !options.style[c]) this.css({ backgroundColor: 'transparent' });
           let r, rows = tables[key].data.rows;
           for (r = 0; r < rows.length; r++) {
             if (rows[r][0] == this.parent().data('rowid')) break;
@@ -1893,12 +1937,10 @@ function checkEdit(cell, edit, oldvalue) {
           else {
             if ((data.input == 'true') || (data.input == options.edit[c].truevalue)) data.input = true;
             else if ((data.input == 'false') || (data.input == options.edit[c].falsevalue)) data.input = false;
+            if (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length == 2))) data.input = edit.find('option:selected').text();
             if ((data.input === '') && (data.rows[0][c] === null)) data.input = null;
 
             if (options.edit[c].type == 'datauri'); // Don't update the cell now so that the data-uri is re-rendered by updateRow()
-            else if ((typeof(options.edit[c]) == 'object') && (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length == 2)))) {
-              rows[r][c] = data.rows[0][c];
-            }
             else rows[r][c] = data.input;
             updateRow(options, this.closest('tbody'), rows[r], data.rows[0]);
             rows[r] = data.rows[0];
@@ -1919,7 +1961,8 @@ function checkEdit(cell, edit, oldvalue) {
     else if (options.edit[c].type == 'datauri') cell.html(tr('Loading...'));
     else if ((newvalue == '') && (typeof options.emptycelltext == 'string')) cell.text(options.emptycelltext);
     else cell.text(newvalue);
-    if (!options.style || !options.style[c]) cell.css({ backgroundColor: '#ffa0a0' });
+    // if (!options.style || !options.style[c]) cell.css({ backgroundColor: '#ffa0a0' });
+    cell.addClass('lt-notsaved');
   }
   else if (edit.prop('nodeName') == 'SELECT') cell.text(edit.find('option[value="' + oldvalue + '"]').text());
   else {
@@ -1933,35 +1976,57 @@ function doInsert(el) {
   el = $(el);
   let row = el.closest('.lt-insert');
   let error = false;
-  let postdata = row.find('input,select,textarea').not(el).map(function() {
-    let value, input = $(this);
+  let table = tables[row.closest('table').attr('id')].data;
+  let formdata = new FormData();
+  formdata.append('mode', 'insertrow');
+  formdata.append('src', table.block + ':' + table.tag);
+  for (let input of row.find('input,select,textarea').not(el)) {
+    input = $(input);
+    if (!input[0].checkValidity()) {
+      input.addClass('lt-check-validity');
+      error = true;
+    }
+    let value;
     if (input.prop('type') == 'checkbox') value = input.prop('checked');
+    else if (input.prop('type') == 'file') value = input[0].files[0];
     else value = input.val();
     if (value === null) value = '';
     input.trigger('input');
-    if (input.hasClass('lt-input-error')) error = true;
-    return input.prop('name').replace('.', ':') + '=' + encodeURIComponent(value);
-  }).get().join('&');
+    formdata.append(input.prop('name').replace('.', ':'), value);
+  };
   if (error) {
     alert(tr('Row has errors and cannot be inserted'));
     return;
   }
-  let table = tables[row.closest('table').attr('id')].data;
   if (table.options.insert && table.options.insert.hidden) {
     if (typeof(table.options.insert.hidden[0]) == 'object') { // Multiple hidden fields (array of arrays)
-      for (i = 0; table.options.insert.hidden[i]; i++) postdata += processHiddenInsert(table.options.insert.hidden[i], row.closest('.lt-div').data('params'));
+      for (i = 0; table.options.insert.hidden[i]; i++) processHiddenInsert(formdata, table.options.insert.hidden[i]);
     }
-    else postdata += processHiddenInsert(table.options.insert.hidden, row.closest('.lt-div').data('params'));
+    else processHiddenInsert(formdata, table.options.insert.hidden);
   }
-  postdata = 'params=' + row.closest('.lt-div').data('params') + '&' + postdata;
   $.ajax({
     dataType: 'json',
     url: ajaxUrl,
     method: 'post',
     context: row,
-    data: 'mode=insertrow&src=' + table.block + ':' + table.tag + '&' + postdata,
+    data: formdata,
+    processData: false,
+    contentType: false,
+    xhr: function() {
+      let xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('progress', function(evt) {
+        if (evt.lengthComputable) {
+          let pct = Math.round(evt.loaded * 100 / evt.total);
+          el.css('background', 'linear-gradient(90deg, rgba(0,255,0,1) 0%, rgba(0,255,0,1) ' + pct + '%, rgba(110,28,32,0) ' + pct + '%, rgba(0,0,0,0) 100%)');
+        }
+      });
+      return xhr;
+    },
     success: function(data) {
-      if (data.error) userError(data.error);
+      if (data.error) {
+        el.css('background', 'rgb(255,0,0)');
+        userError(data.error);
+      }
       else if (data.replace) {
         let parent = this.closest('.lt-div').parent();
         parent.empty().html(data.replace);
@@ -1978,7 +2043,7 @@ function doInsert(el) {
         if (!tabledata.options.insert || (tabledata.options.insert.noclear !== true)) {
           this.find('input,select,textarea').each(function() {
             let el = $(this);
-            if (el.prop('type') == 'button');
+            if (el.prop('type') == 'button') el.css('background', '');
             else if (el.data('default')) {
               if (el.prop('nodeName') == 'SELECT') el.find('option').contents().filter(function() { return this.nodeValue == el.data('default'); }).parent().prop('selected', true);
               else el.val(el.data('default'));
@@ -1988,6 +2053,7 @@ function doInsert(el) {
             else if (el.prop('type') == 'checkbox') el.prop('checked', false);
             else if (el.hasClass('lt-addoption')) switchToSelect(el);
             else el.val('');
+            el.removeClass('lt-check-validity');
           });
         }
 
@@ -2040,8 +2106,12 @@ function doNext(el, prev) {
       method: 'post',
       data: data,
       success: function(data) {
-        if (data.error) userError(data.error);
-        else if (data.replace) {
+        if (data.error) {
+          userError(data.error);
+          return;
+        }
+        if (options.runjs) eval(options.runjs);
+        if (data.replace) {
           $('#block_' + key.split(':')[0]).replaceWith(data.replace);
           let block = $('#block_' + key.split(':')[0]);
           loadOrRefreshCollection(block.find('.lt-div'));
@@ -2058,18 +2128,9 @@ function doNext(el, prev) {
   }
 }
 
-function processHiddenInsert(hidden, paramstr) {
+function processHiddenInsert(formdata, hidden) {
   if (!hidden.target || !hidden.value) appError('No target or value defined in insert hidden');
-  let value = String(hidden.value);
-  if (value.indexOf('#') >= 0) {
-    if (paramstr) {
-      params = JSON.parse(atob(paramstr));
-      for (let i = 0; params[i]; i++) {
-        value = value.replace('#param' + (i+1), params[i]);
-      }
-    }
-  }
-  return '&' + hidden.target.replace('.', ':') + '=' + value;
+  formdata.append(hidden.target.replace('.', ':'), hidden.value);
 }
 
 function doDelete(el) {
@@ -2091,7 +2152,7 @@ function doDelete(el) {
     url: ajaxUrl,
     method: 'post',
     context: el.closest('tbody'),
-    data: 'mode=deleterow&src=' + table.block + ':' + table.tag + '&id=' + rowid + '&params=' + el.closest('.lt-div').data('params'),
+    data: 'mode=deleterow&src=' + table.block + ':' + table.tag + '&id=' + rowid,
     success: function(data) {
       if (data.error) userError(data.error);
       else {

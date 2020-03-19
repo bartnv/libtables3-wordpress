@@ -2,7 +2,7 @@
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Libtables3: framework for building web-applications on relational databases *
- * Version 3.0.0-alpha / Copyright (C) 2019  Bart Noordervliet, MMVI           *
+ * Version 3.0.0-beta / Copyright (C) 2020  Bart Noordervliet, MMVI            *
  *                                                                             *
  * This program is free software: you can redistribute it and/or modify        *
  * it under the terms of the GNU Affero General Public License as              *
@@ -18,24 +18,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.       *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-if (!session_id()) session_start();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+  if (headers_sent()) error_log('Libtables error: need to start session but headers already sent for request "' . $_SERVER['REQUEST_URI'] . '?' . $_SERVER['QUERY_STRING'] . '"');
+  else session_start();
+}
 require('config.php');
 if (is_file('local.php')) {
   if (is_readable('local.php')) include('local.php');
   else error_log("Libtables error: local.php exists but is not readable for the PHP user");
 }
 
-$tables = array();
+$tables = [];
 
-function lt_var($name, $value = null) {
-  if ($value === null) {
-    if (isset($_SESSION[$name])) return $_SESSION[$name];
-    throw new Exception("Request for undefined libtables variable '$name'");
-  }
-  else {
-    $_SESSION[$name] = $value;
-    return $value;
-  }
+function lt_setvar($name, $value) {
+  if ($value === NULL) unset($_SESSION[$name]);
+  else $_SESSION[$name] = $value;
+}
+function lt_getvar($name, $default = NULL) {
+  if (isset($_SESSION[$name])) return $_SESSION[$name];
+  if ($default === NULL) throw new Exception("Undefined libtables variable '$name' used in block");
+  return $default;
+}
+function lt_isvar($name) {
+  if (isset($_SESSION[$name])) return true;
+  return false;
 }
 
 function lt_control($tag, $options) {
@@ -55,7 +61,7 @@ function lt_control($tag, $options) {
   print $divstr;
 }
 
-function lt_text($tag, $query, $funcparams, $format, $options = array()) {
+function lt_text($tag, $query, $format, $options = array()) {
   global $tables;
   global $basename;
 
@@ -73,23 +79,24 @@ function lt_text($tag, $query, $funcparams, $format, $options = array()) {
   else $divclasses = 'lt-div-text';
 
   $divstr = ' <div id="' . $tag . '" class="' . $divclasses . '" data-source="' . $basename . ':' . $tag . '"';
-  if (!empty($funcparams)) $divstr .= ' data-params="' . base64_encode(json_encode($funcparams)) . '"';
-  if (!empty($options['embed'])) $divstr .= ' data-embedded="' . base64_encode(lt_query_to_string($query, $funcparams, $format)) . '"';
+  if (!empty($options['embed'])) $divstr .= ' data-embedded="' . base64_encode(lt_query_to_string($query, $format)) . '"';
   print $divstr . "></div>\n";
 }
 
 function lt_table($tag, $title, $query, $options = array()) {
   global $lt_settings;
-  global $tables;
   global $basename; // Set by lt_print_block()
   global $block_options; // Set by lt_print_block()
 
+  $table = [];
+  $table['block'] = $basename;
+  $table['tag'] = $tag;
+  $table['title'] = $title;
+  $table['query'] = $query;
+  $table['options'] = $options;
+
   if (!$basename) { // lt_table run from data.php
-    $table = array();
-    $table['tag'] = $tag;
-    $table['title'] = $title;
-    $table['query'] = $query;
-    $table['options'] = $options;
+    global $tables;
     $tables[] = $table;
     return;
   }
@@ -111,60 +118,155 @@ function lt_table($tag, $title, $query, $options = array()) {
     return;
   }
 
-  if (!empty($block_options['params'])) $params = $block_options['params'];
-  elseif (!empty($options['params'])) {
-    if (is_numeric($options['params'])) $params = array();
-    elseif (is_array($options['params'])) {
-      $params = array();
-      foreach ($options['params'] as $param) {
-        if (!empty($_GET[$param])) $params[] = $_GET[$param];
-        else {
-          print "<p>Table $tag in block $basename requires $param parameter</p>";
-          return;
-        }
-      }
-    }
-  }
-  else $params = array();
   if (!empty($options['classes']['div'])) $divclasses = 'lt-div ' . $options['classes']['div'];
   else $divclasses = 'lt-div';
 
   $divstr = ' <div id="' . $tag . '" class="' . $divclasses . '" data-source="' . $basename . ':' . $tag . '"';
 
   if (!empty($options['embed'])) {
-    if (!empty($query)) {
-      $data = lt_query($query, $params);
-      if (isset($data['error'])) {
-        print '<p>Query for table ' . $table['title'] . ' in block ' . $basename . ' returned error: ' . $data['error'] . '</p>';
-        return;
-      }
-      if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $data['crc'] = crc32(json_encode($data['rows']));
-      elseif ($lt_settings['checksum'] == 'psql') {
-        $data['crc'] = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM ($query) AS q)");
-        if (strpos($data['crc'], 'Error:') === 0) {
-          print '<p>Checksum query for table ' . $table['title'] . ' in block ' . $basename . ' returned error: ' . substr($data['crc'], 6);
-          return;
-        }
-      }
+    $data = prepare_table($table);
+    if (!empty($data['error'])) {
+      print '<p>Error: ' . $data['error'] . '</p>';
+      return;
     }
-    $data['options'] = $options;
-    $data['title'] = $title;
-    $data['block'] = $basename;
-    $data['tag'] = $tag;
-
-    if (!empty($params)) $data['params'] = base64_encode(json_encode($params));
     $divstr .= ' data-embedded="' . "\n" . chunk_split(base64_encode(json_encode($data)), 79, "\n") . '"';
   }
-
-  if (empty($params)) {
-    if (!empty($options['params'])) $divstr .= ' data-params="-"';
-    else; // This is the default case; no addition to $divstr necessary
-  }
-  else $divstr .= ' data-params="' . base64_encode(json_encode($params)) . '"';
 
   if (!empty($block_options['active'])) $divstr .= ' data-active="' . $block_options['active'] . '"';
 
   print $divstr . '>Loading table ' . $title . "...</div>\n";
+}
+
+function prepare_table($table) {
+  $ret = [];
+  if (is_array($table['query'])) {
+    $ret['headers'] = $table['query'];
+    $ret['rowcount'] = -1;
+  }
+  elseif (isset($table['options']['export']['nopreview']) && $table['options']['export']['nopreview']) {
+    $ret = lt_query($table['query'] . ' LIMIT 0');
+    $ret['rowcount'] = lt_query_single('SELECT COUNT(*) FROM (' . $table['query'] . ') AS tmp');
+  }
+  else $ret = lt_query($table['query']);
+  if (isset($ret['error'])) {
+    $ret['error'] = 'Query for table ' . $table['title'] . ' in block ' . $table['block'] . " returned error: " . $ret['error'];
+    return $ret;
+  }
+  $ret['block'] = $table['block'];
+  $ret['tag'] = $table['tag'];
+  if (!empty($table['options']['titlequery'])) $ret['title'] = lt_query_single($table['options']['titlequery']);
+  else $ret['title'] = $table['title'];
+  $ret['options'] = prepare_options($table['options']);
+  if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $ret['crc'] = crc32(json_encode($ret['rows'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PARTIAL_OUTPUT_ON_ERROR));
+  elseif ($lt_settings['checksum'] == 'psql') {
+    $ret['crc'] = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM (" . $table['query'] . ") AS q)");
+    if (strpos($ret['crc'], 'Error:') === 0) {
+      $ret['error'] = '<p>Checksum query for table ' . $table['title'] . ' in block ' . $table['block'] . ' returned error: ' . substr($ret['crc'], 6);
+    }
+  }
+  return $ret;
+}
+
+function get_selectoptions($query) {
+  global $dbh;
+
+  $ret = [];
+  if (!($res = $dbh->query($query))) $ret['error'] = "SQL error: " . $dbh->errorInfo()[2];
+  else {
+    $ret['items'] = $res->fetchAll(\PDO::FETCH_NUM);
+    $ret['crc'] = crc32(json_encode($ret['items'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PARTIAL_OUTPUT_ON_ERROR));
+  }
+  return $ret;
+}
+
+function prepare_options($options) {
+  $tables = [];
+
+  if (!empty($options['edit'])) {
+    foreach ($options['edit'] as $idx => &$edit) {
+      if (!is_numeric($idx)) continue;
+      if (is_string($edit)) $edit = [ 'target' => $edit ];
+      else {
+        if (isset($edit[0])) { $edit['target'] = $edit[0]; unset($edit[0]); }
+        if (isset($edit[1])) { $edit['query'] = $edit[1]; unset($edit[1]); }
+        unset($edit['sqlfunction']);
+        unset($edit['phpfunction']);
+        if (isset($edit['query'])) {
+          $ret = get_selectoptions($edit['query']);
+          if (!empty($ret['error'])) error_log('Libtables error: ' . $ret['error']);
+          else $edit['list'] = $ret;
+        }
+      }
+      if (!isset($edit['required'])) {
+        list($table, $column) = explode('.', $edit['target']);
+        if (empty($table) || empty($column)) error_log('Libtables error: invalid target specification: ' . json_encode($edit));
+        if (!isset($tables[$table])) $tables[$table] = lt_col_nullable($table);
+        if (!isset($tables[$table][$column])) error_log("Libtables error: table $table column $column not found in nullable query");
+        if (!$tables[$table][$column]) $edit['required'] = true;
+      }
+    }
+  }
+  if (!empty($options['insert'])) {
+    foreach ($options['insert'] as $idx => &$insert) {
+      if (!is_numeric($idx)) continue;
+      if (is_bool($insert)) continue; // An insert can be set to FALSE to negate a setting included from edit
+      if (is_string($insert)) $insert = [ 'target' => $insert ];
+      else {
+        if (isset($insert[0])) { $insert['target'] = $insert[0]; unset($insert[0]); }
+        if (isset($insert[1])) { $insert['query'] = $insert[1]; unset($insert[1]); }
+        unset($insert['sqlfunction']);
+        unset($insert['phpfunction']);
+        if (isset($insert['query'])) {
+          $ret = get_selectoptions($insert['query']);
+          if (!empty($ret['error'])) error_log('Libtables error: ' . $ret['error']);
+          else $insert['list'] = $ret;
+        }
+      }
+      if (!isset($insert['required'])) {
+        list($table, $column) = explode('.', $insert['target']);
+        if (empty($table) || empty($column)) error_log('Libtables error: invalid target specification: ' . json_encode($insert));
+        if (!isset($tables[$table])) $tables[$table] = lt_col_nullable($table);
+        if (!isset($tables[$table][$column])) error_log("Libtables error: table $table column $column not found in nullable query");
+        if (!$tables[$table][$column]) $insert['required'] = true;
+      }
+    }
+  }
+  if (!empty($options['tablefunction']['hidecondition'])) $options['tablefunction']['hidecondition'] = lt_query_single($options['tablefunction']['hidecondition']);
+  if (!empty($options['selectany'])) {
+    $sa = $options['selectany'];
+    if (!empty($sa['id'])) $tmp = lt_query('SELECT ' . $sa['fields'][1] . ' FROM ' . $sa['linktable'] . ' WHERE ' . $sa['fields'][0] . ' = ' . $sa['id']);
+    else $tmp = lt_query('SELECT ' . $sa['fields'][1] . ' FROM ' . $sa['linktable'] . ' WHERE ' . $sa['fields'][0] . ' = ?');
+    $options['selectany']['links'] = array_column($tmp['rows'], 0);
+  }
+
+  return $options;
+}
+
+function lt_col_nullable($table) {
+  global $dbh;
+  $result = [];
+
+  if (!($dbtype = $dbh->getAttribute(\PDO::ATTR_DRIVER_NAME))) error_log('Libtables error: unable to query SQL server type');
+  if ($dbtype == 'mysql') {
+    if (!($res = $dbh->query("DESC $table"))) error_log('Libtables error: SQL-error: ' . $dbh->errorInfo()[2]);
+    foreach ($res as $row) {
+      $result[$row['Field']] = $row['Null']=="YES"?true:false;
+    }
+  }
+  elseif ($dbtype == 'sqlite') {
+    if (!($res = $dbh->query("PRAGMA table_info($table)"))) error_log('Libtables error: SQL-error: ' . $dbh->errorInfo()[2]);
+    foreach ($res as $row) {
+      $result[$row['name']] = $row['notnull']?false:true;
+    }
+  }
+  elseif ($dbtype == 'pgsql') {
+    if (!($res = $dbh->query("SELECT column_name, is_nullable FROM information_schema.columns WHERE table_name = '$table'"))) error_log('Libtables error: SQL-error: ' . $dbh->errorInfo()[2]);
+    foreach ($res as $row) {
+      $result[$row['column_name']] = $row['is_nullable']=='YES'?true:false;
+    }
+  }
+  if (empty($result)) error_log("Libtables error: lt_col_nullable('$table') failed to produce results");
+  return $result;
 }
 
 function lt_calendar($tag, $queries, $options = array()) {
@@ -194,26 +296,15 @@ function lt_gantt($tag, $queries, $options = array()) {
   }
 }
 
-function lt_print_block($block, $params = array(), $options = array()) {
+function lt_print_block($block, $options = array()) {
   global $lt_settings;
   global $basename;
   global $block_options;
-  global $block_params;
   global $mch; // May be used in block definitions
-
-  if (!is_array($params)) {
-    print "Second parameter to lt_print_block('$block', ...) is not an array";
-    return;
-  }
-  if (!is_array($options)) {
-    print "Third parameter to lt_print_block('$block', ...) is not an array";
-    return;
-  }
 
   $basename_prev = $basename;
   $basename = $block;
   $block_options = $options;
-  $block_params = $params;
 
   // if ($lt_settings['security'] == 'php') {
   //   if (empty($lt_settings['allowed_blocks_query'])) {
@@ -253,7 +344,7 @@ function lt_print_block($block, $params = array(), $options = array()) {
         return;
       }
       $yaml = yaml_parse_file($dir . $basename . '.yml', -1);
-      if ($yaml === false) print("<p>YAML syntax error in block $basename</p>");
+      if ($yaml === false) print("YAML syntax error in block $basename");
       else {
         foreach ($yaml as $table) {
           lt_table($table[0], $table[1], $table[2], isset($table[3])?$table[3]:array());
@@ -264,9 +355,8 @@ function lt_print_block($block, $params = array(), $options = array()) {
       return;
     }
     if (file_exists($dir . $basename . '.php')) {
-      // if (!empty($params)) $block_options['params'] = $params;
       try {
-        $ret = eval(file_get_contents($dir . $basename . '.php'));
+        $ret = include $dir . $basename . '.php';
       } catch (Exception $e) {
         print "PHP error in block $basename: " . $e->getMessage();
       }
@@ -280,37 +370,38 @@ function lt_print_block($block, $params = array(), $options = array()) {
   $basename = $basename_prev;
 }
 
-function lt_query($query, $params = array(), $id = 0) {
+function lt_bind_params($stmt, $query, $params = []) {
+  if (!preg_match_all("/ :([a-z_]+)/", $query, $matches)) return;
+  foreach ($matches[1] as $param) {
+    if (isset($params[$param])) $value = $params[$param];
+    elseif (isset($_SESSION[$param])) $value = $_SESSION[$param];
+    else throw new Exception("Undefined libtables variable '$param' used in query");
+    if (is_bool($value)) $stmt->bindValue(":$param", $value, PDO::PARAM_BOOL);
+    elseif (is_null($value)) $stmt->bindValue(":$param", $value, PDO::PARAM_NULL);
+    elseif (is_int($value)) $stmt->bindValue(":$param", $value, PDO::PARAM_INT);
+    else $stmt->bindValue(":$param", $value);
+  }
+}
+
+function lt_query($query, $id = 0) {
   global $dbh;
-  global $block_params;
   $ret = array();
 
-  if (!empty($params)) $localparams = $params;
-  elseif (!empty($block_params)) $localparams = $block_params;
-
   $start = microtime(TRUE);
-  if (empty($localparams)) {
-    if (!($res = $dbh->query($query))) {
-      $err = $dbh->errorInfo();
-      $ret['error'] = $err[2];
-      return $ret;
-    }
-  }
-  else {
-    $paramcount = substr_count($query, '?');
-    if (count($localparams) > $paramcount) $localparams = array_slice($localparams, 0, $paramcount);
 
-    if (!($res = $dbh->prepare($query))) {
-      $err = $dbh->errorInfo();
-      $ret['error'] = $err[2];
-      return $ret;
-    }
-    if (!$res->execute($localparams)) {
-      $err = $res->errorInfo();
-      $ret['error'] = $err[2];
-      return $ret;
-    }
+  if (!($res = $dbh->prepare($query))) {
+    $ret['error'] = $dbh->errorInfo()[2];
+    return $ret;
   }
+  try { lt_bind_params($res, $query); } catch (Exception $e) {
+    $ret['error'] = $e->getMessage();
+    return $ret;
+  }
+  if (!$res->execute()) {
+    $ret['error'] = $res->errorInfo()[2];
+    return $ret;
+  }
+
   $ret['querytime'] = intval((microtime(TRUE)-$start)*1000);
 
   if ($id) {
@@ -344,29 +435,20 @@ function lt_query($query, $params = array(), $id = 0) {
   return $ret;
 }
 
-function lt_query_to_string($query, $params = array(), $format) {
+function lt_query_to_string($query, $format, $params = []) {
   global $dbh;
   global $block_options; // Set by lt_print_block()
 
-  if (!empty($params)) $localparams = $params;
-  elseif (!empty($block_params)) $localparams = $block_params;
+  if (!($res = $dbh->prepare($query))) {
+    return "SQL-error: " . $dbh->errorInfo()[2];
+  }
+  try { lt_bind_params($res, $query, $params); } catch (Exception $e) {
+    return "SQL parameter error: " . $e->getMessage();
+  }
+  if (!$res->execute()) {
+    return "SQL-error: " . $res->errorInfo()[2];
+  }
 
-  if (empty($localparams)) {
-    if (!($res = $dbh->query($query))) {
-      $err = $dbh->errorInfo();
-      return "SQL-error: " . $err[2];
-    }
-  }
-  else {
-    if (!($res = $dbh->prepare($query))) {
-      $err = $dbh->errorInfo();
-      return "SQL-error: " . $err[2];
-    }
-    if (!$res->execute($localparams)) {
-      $err = $res->errorInfo();
-      return "SQL-error: " . $err[2];
-    }
-  }
   if (!$res->rowCount()) return "Query for lt_query_to_string() did not return any rows";
   if (!$res->columnCount()) return "Query for lt_query_to_string() did not return any columns";
 
@@ -384,29 +466,42 @@ function lt_query_to_string($query, $params = array(), $format) {
   return $ret;
 }
 
-function lt_query_single($query, $params = array()) {
+function lt_query_single($query, $params = []) {
   global $dbh;
 
-  if (!empty($params)) {
-    if (!($res = $dbh->prepare($query))) {
-      $err = $dbh->errorInfo();
-      return "Error: query prepare failed: " . $err[2];
-    }
-    if (!$res->execute($params)) {
-      $err = $res->errorInfo();
-      return "Error: query execute failed: " . $err[2];
-    }
-    if (!($row = $res->fetch())) return "";
+  if (!($res = $dbh->prepare($query))) {
+    error_log("Libtables error: query prepare failed: " . $dbh->errorInfo()[2]);
+    return null;
   }
-  else {
-    if (!($res = $dbh->query($query))) {
-      $err = $dbh->errorInfo();
-      return "Error: query failed: " . $err[2];
-    }
-    if ($res->rowCount() == 0) return "";
-    if (!($row = $res->fetch())) return "";
+  try { lt_bind_params($res, $query, $params); } catch (Exception $e) {
+    error_log("Libtables error: " . $e->getMessage());
+    return null;
   }
+  if (!$res->execute()) {
+    error_log("Libtables error: query execute failed: " . $res->errorInfo()[2]);
+    return null;
+  }
+  if (!($row = $res->fetch(PDO::FETCH_NUM))) return null;
   return $row[0];
+}
+
+function lt_query_row($query, $params = []) {
+  global $dbh;
+
+  if (!($res = $dbh->prepare($query))) {
+    error_log("Libtables error: query prepare failed: " . $dbh->errorInfo()[2]);
+    return null;
+  }
+  try { lt_bind_params($res, $query, $params); } catch (Exception $e) {
+    error_log("Libtables error: " . $e->getMessage());
+    return null;
+  }
+  if (!$res->execute()) {
+    error_log("Error: query execute failed: " . $res->errorInfo()[2]);
+    return null;
+  }
+  if (!($row = $res->fetch(PDO::FETCH_NUM))) return null;
+  return $row;
 }
 
 function lt_tables_from_query($query) {
@@ -417,35 +512,23 @@ function lt_tables_from_query($query) {
   return array_keys(array_flip($matches[1]));
 }
 
-function lt_query_check($query, $funcparams = []) {
+function lt_query_check($query, $params = []) {
   global $dbh;
-  global $block_params;
 
-  if (!empty($funcparams)) $localparams = $funcparams;
-  elseif (!empty($block_params)) $localparams = $block_params;
+  if (!($res = $dbh->prepare($query))) {
+    error_log("Libtables error: query prepare failed: " . $dbh->errorInfo()[2]);
+    return false;
+  }
+  try { lt_bind_params($res, $query, $params); } catch (Exception $e) {
+    error_log("Libtables error: " . $e->getMessage());
+    return false;
+  }
+  if (!$res->execute()) {
+    error_log("Libtables error: query execute failed: " . $res->errorInfo()[2]);
+    return false;
+  }
+  if (!($row = $res->fetch(PDO::FETCH_NUM))) return false;
 
-  if (!empty($localparams)) {
-    $paramcount = substr_count($query, '?');
-    if (count($localparams) > $paramcount) $localparams = array_slice($localparams, 0, $paramcount);
-    if (!($res = $dbh->prepare($query))) {
-      error_log("Libtables error: query prepare failed: " . $dbh->errorInfo()[2]);
-      return false;
-    }
-    if (!$res->execute($localparams)) {
-      error_log("Libtables error: query execute failed: " . $res->errorInfo()[2]);
-      return false;
-    }
-    if (!($row = $res->fetch())) return false;
-  }
-  else {
-    if (!($res = $dbh->query($query))) {
-      error_log("Error: query failed: " . $dbh->errorInfo()[2]);
-      return false;
-    }
-    if ($res->rowCount() == 0) return false;
-    if (!($row = $res->fetch(PDO::FETCH_NUM))) return false;
-    if (is_null($row[0])) return false;
-  }
   return true;
 }
 
@@ -464,7 +547,11 @@ function lt_update_count($query, $params = []) {
       error_log("Libtables error: query prepare failed: " . $dbh->errorInfo()[2]);
       return -1;
     }
-    if (!$res->execute($params)) {
+    try { lt_bind_params($res, $query, $params); } catch (Exception $e) {
+      error_log("Libtables error: " . $e->getMessage());
+      return -1;
+    }
+    if (!$res->execute()) {
       error_log("Libtables error: query execute failed: " . $res->errorInfo()[2]);
       return -1;
     }
