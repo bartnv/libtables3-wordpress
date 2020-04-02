@@ -27,8 +27,8 @@ global $dbh;
 function fatalerr($msg, $redirect = "") {
   global $lt_settings;
   $ret['error'] = $msg;
-  if (!empty($lt_settings['error_transl'])) {
-    foreach ($lt_settings['error_transl'] as $key => $value) {
+  if (!empty($lt_settings['error_rewrite'])) {
+    foreach ($lt_settings['error_rewrite'] as $key => $value) {
       if (strpos($msg, $key) !== FALSE) {
         $ret['error'] = $value;
         $ret['details'] = $msg;
