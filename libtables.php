@@ -83,6 +83,20 @@ function lt_text($tag, $query, $format, $options = array()) {
   print $divstr . "></div>\n";
 }
 
+function lt_insert($tag, $title, $colnames, $options = []) {
+  global $basename;
+
+  if (!is_array($colnames)) {
+    print "<p>lt_insert() in block $basename has invalid colnames</p>";
+    return;
+  }
+  if (!is_array($options)) {
+    print "<p>lt_insert() in block $basename has invalid options</p>";
+    return;
+  }
+  lt_table($tag, $title, $colnames, $options);
+}
+
 function lt_table($tag, $title, $query, $options = array()) {
   global $lt_settings;
   global $basename; // Set by lt_print_block()
