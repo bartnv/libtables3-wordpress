@@ -345,13 +345,13 @@ function loadControl(div, attr) {
   }
   if (options.prev) {
     if (typeof options.prev == 'object') {
-      div.append('<input type="button" class="' + classes + '" value="' + options.prev[1] + '" onclick="doNext(this, true)">');
+      div.append('<input type="button" class="' + classes + '" value="' + tr(options.prev[1]) + '" onclick="doNext(this, true)">');
     }
     else div.append('<input type="button" class="' + classes + '" value="' + tr('Previous') + '" onclick="doNext(this, true)">');
   }
   if (options.next) {
     if (typeof options.next == 'object') {
-      div.append('<input type="button" class="' + classes + '" value="' + options.next[1] + '" onclick="doNext(this)">');
+      div.append('<input type="button" class="' + classes + '" value="' + tr(options.next[1]) + '" onclick="doNext(this)">');
     }
     else div.append('<input type="button" class="' + classes + '" value="' + tr('Next') + '" onclick="doNext(this)">');
   }
@@ -636,7 +636,7 @@ function renderTableSelect(table, data, sub) {
 function renderTableDivs(table, data, sub) {
   let container = $('<div class="lt-div-table"/>');
   container.attr('id', table.attr('id'));
-  if (data.options.classes && data.options.classes.table) container.addClass(data.options.classes.table);
+  if (data.options.class && data.options.class.table) container.addClass(data.options.class.table);
 
   let items = '';
   for (let r = 0; r < data.rows.length; r++) { // Main loop over the data rows
@@ -694,7 +694,7 @@ function renderTableList(table, data, sub) {
 }
 
 function renderTableFormat(table, data, sub) {
-  if (data.options.classes && data.options.classes.table) table.addClass(data.options.classes.table);
+  if (data.options.class && data.options.class.table) table.addClass(data.options.class.table);
   let headstr;
   if (data.options.hideheader) headstr = '';
   else headstr = renderTitle(data);
@@ -926,7 +926,7 @@ function renderHeaders(data, id) {
 function renderTableGrid(table, data, sub) {
   let pagetitle, thead = $('<thead/>'), tbody, tfoot, rowcount;
 
-  if (data.options.classes && data.options.classes.table) table.addClass(data.options.classes.table);
+  if (data.options.class && data.options.class.table) table.addClass(data.options.class.table);
   if (!sub) thead.append(renderTitle(data));
 
   if ((data.rows && data.rows.length) || (data.rowcount >= 0) || data.options.textifempty) { // rowcount is set for exports with nopreview=true
@@ -1331,14 +1331,13 @@ function renderCell(options, row, c, element) {
   if (!element) element = 'td';
   let input, onclick;
   let classes = [ "lt-cell", "lt-data" ];
-  if (options.classes && options.classes[c]) classes.push(options.classes[c]);
+  if (options.class && options.class[c]) classes.push(options.class[c]);
   if (options.edit && options.edit[c]) {
     classes.push('lt-edit');
     if (typeof(options.edit[c]) == 'string') onclick = ' onclick="doEdit(this)"';
     else if (typeof(options.edit[c]) == 'object') {
-      let a;
       if (options.edit[c].required && (row[c] === null)) classes.push('lt-required-empty');
-      if ((a = options.edit[c].condition) && (a.length == 3) && !checkCondition(row, a[0], a[1], a[2])) {
+      if (options.edit[c].condition && !eval(replaceHashes(options.edit[c].condition, row))) {
         onclick = '';
         classes.pop(); // Remove the .lt-edit class
       }
@@ -1362,11 +1361,11 @@ function renderCell(options, row, c, element) {
   if (options.subtables && (options.subtables[c])) {
     content = '<div class="lt-div" data-source="' + options.subtables[c] + '" data-sub="true">Loading subtable ' + options.subtables[c] + '</div>';
   }
-  else if (options.transformations && options.transformations[c] && options.transformations[c].image) {
-    content = '<img src="' + replaceHashes(options.transformations[c].image, row) + '">';
+  else if (options.transformation && options.transformation[c] && options.transformation[c].image) {
+    content = '<img src="' + replaceHashes(options.transformation[c].image, row) + '">';
   }
-  else if (options.transformations && options.transformations[c] && options.transformations[c].round && $.isNumeric(row[c])) {
-    content = parseFloat(row[c]).toFixed(options.transformations[c].round);
+  else if (options.transformation && options.transformation[c] && options.transformation[c].round && $.isNumeric(row[c])) {
+    content = parseFloat(row[c]).toFixed(options.transformation[c].round);
   }
   else if (input) content = input;
   else if (row[c] === null) {
@@ -1403,14 +1402,14 @@ function calcSums(tfoot, data, update) {
   for (let c = 1; c < data.headers.length; c++) {
     if (data.options.mouseover && data.options.mouseover[c]) continue;
     let classes = [ "lt-cell", "lt-sum" ];
-    if (data.options.classes && data.options.classes[c]) classes.push(data.options.class[c]);
+    if (data.options.class && data.options.class[c]) classes.push(data.options.class[c]);
     if (data.options.sum[c]) {
       let sum = 0, content;
       for (let r = 0; r < data.rows.length; r++) {
         if (data.rows[r][c]) sum += parseFloat(data.rows[r][c]);
       }
-      if (data.options.transformations && data.options.transformations[c]) {
-        if (data.options.transformations[c].round) content = sum.toFixed(data.options.transformations[c].round);
+      if (data.options.transformation && data.options.transformation[c]) {
+        if (data.options.transformation[c].round) content = sum.toFixed(data.options.transformation[c].round);
       }
       else content = Math.round(sum*1000000)/1000000;
       row.append('<td class="' + classes.join(' ') + '">' + content + '</td>');
@@ -1439,8 +1438,8 @@ function updateSums(tfoot, data) {
       }
       sum = String(Math.round(sum*1000000)/1000000);
       let oldsum = row.children().eq(c-1-skipped).html();
-      if (data.options.transformations && data.options.transformations[c]) {
-        if (data.options.transformations[c].round) sum = parseFloat(sum).toFixed(data.options.transformations[c].round);
+      if (data.options.transformation && data.options.transformation[c]) {
+        if (data.options.transformation[c].round) sum = parseFloat(sum).toFixed(data.options.transformation[c].round);
       }
       if (sum != oldsum) {
         let cell = row.children().eq(c-1-skipped);
