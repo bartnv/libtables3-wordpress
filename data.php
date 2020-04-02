@@ -232,7 +232,7 @@ switch ($mode) {
     if (!empty($ret['error'])) fatalerr($ret['error']);
     break;
   case 'sqlrun':
-    if (empty($lt_settings) || ($lt_settings['security'] != 'none')) fatalerr('SQLrun not enabled due to security setting');
+    if (empty($lt_settings) || ($lt_settings['sqlrun'] != 'enabled')) fatalerr('SQLrun not enabled in libtables configuration');
     if (empty($_POST['sql']) || !preg_match('/^\s*SELECT /i', $_POST['sql'])) fatalerr('Invalid sql in mode sqlrun');
     $ret = lt_query($_POST['sql']);
     $ret['title'] = 'sqlrun';
@@ -508,17 +508,17 @@ switch ($mode) {
 
     if (!empty($action['setvar'])) {
       foreach ($action['setvar'] as $name => $value) {
-        lt_setvar($name, replaceHashes($value, $ret['row']));
+        lt_setvar(replaceHashes($name, $ret['row']), replaceHashes($value, $ret['row']));
       }
     }
     if (!empty($action['runblock'])) {
       ob_start();
-      lt_print_block($action['runblock']);
+      lt_print_block(replaceHashes($action['runblock'], $ret['row']));
       $ret['output'] = ob_get_clean();
     }
     if (!empty($action['runphp'])) {
       try {
-        $ret['output'] = eval(replaceHashes($action['runphp'], $data['rows'][0]));
+        $ret['output'] = eval(replaceHashes($action['runphp'], $ret['row']));
       } catch (Exception $e) {
         $ret['error'] = "PHP error in rowfunction runphp: " . $e->getMessage();
       }
@@ -696,7 +696,8 @@ switch ($mode) {
 
     if (!empty($tableinfo['options']['insert']['next'])) {
       ob_start();
-      lt_print_block($tableinfo['options']['insert']['next'], [ $id ]);
+      lt_setvar('insertid', $id);
+      lt_print_block($tableinfo['options']['insert']['next']);
       $ret['replace'] = ob_get_clean();
       break;
     }
