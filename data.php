@@ -256,7 +256,7 @@ switch ($mode) {
     if ($crc == $_GET['crc']) $ret = '{ "nochange": 1 }';
     else {
       $ret['crc'] = $crc;
-      if (!empty($table['options']['tablefunction']['hidecondition'])) $ret['options']['tablefunction']['hidecondition'] = lt_query_single($table['options']['tablefunction']['hidecondition']);
+      if (!empty($table['options']['tableaction']['hidecondition'])) $ret['options']['tableaction']['hidecondition'] = lt_query_single($table['options']['tableaction']['hidecondition']);
     }
     break;
   case 'refreshtext':
@@ -443,29 +443,28 @@ switch ($mode) {
     }
     if (!empty($edit['insert']) || !empty($edit[2])) $ret['insert'] = true;
     break;
-  case 'function':
-    if (empty($_POST['type'])) fatalerr('No type specified for mode function');
-    if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode function');
+  case 'action':
+    if (empty($_POST['type'])) fatalerr('No type specified for mode action');
+    if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode action');
 
     $table = lt_find_table($_POST['src']);
     if ($_POST['type'] == 'table') {
-      if (empty($table['options']['tablefunction'])) fatalerr('No tablefunction defined in block ' . $_POST['src']);
-      $action = $table['options']['tablefunction'];
-      // if (empty($table['options']['tablefunction']['query'])) fatalerr('No tablefunction query defined in block ' . $_POST['src']);
+      if (empty($table['options']['tableaction'])) fatalerr('No table action defined in block ' . $_POST['src']);
+      $action = $table['options']['tableaction'];
 
-      if ($table['options']['tablefunction']['runphp']) {
+      if ($action['runphp']) {
         try {
-          $ret['output'] = eval(replaceHashes($table['options']['tablefunction']['runphp']));
+          $ret['output'] = eval(replaceHashes($action['runphp']));
         } catch (Exception $e) {
-          $ret['error'] = "PHP error in tablefunction runphp: " . $e->getMessage();
+          $ret['error'] = "PHP error in table action runphp: " . $e->getMessage();
         }
       }
 
-      if ($table['options']['tablefunction']['runquery']) {
-        if (!($stmt = $dbh->prepare($table['options']['tablefunction']['query']))) {
+      if ($action['runsql']) {
+        if (!($stmt = $dbh->prepare($action['runsql']))) {
           fatalerr("SQL prepare error: " . $dbh->errorInfo()[2]);
         }
-        try { lt_bind_params($res, $query); } catch (Exception $e) {
+        try { lt_bind_params($res, $action['runsql']); } catch (Exception $e) {
           fatalerr("SQL parameter error: " . $e->getMessage());
         }
         if (!($stmt->execute())) {
@@ -473,29 +472,17 @@ switch ($mode) {
         }
         $ret['row'] = $stmt->fetch(\PDO::FETCH_NUM);
       }
-      // if (!empty($table['options']['tablefunction']['redirect'])) {
-      //   if (strpos($table['options']['tablefunction']['redirect'], '#id') !== FALSE) {
-      //     $id = $dbh->lastInsertId();
-      //     $ret['redirect'] = str_replace('#id', $id, $table['options']['tablefunction']['redirect']);
-      //   }
-      //   elseif (strpos($table['options']['tablefunction']['redirect'], '#') !== FALSE) {
-      //     $row = $stmt->fetch(\PDO::FETCH_NUM);
-      //     $str = $table['options']['tablefunction']['redirect'];
-      //     for ($i = count($row)-1; $i >= 0; $i--) $str = str_replace('#' . $i, $row[$i], $str);
-      //     $ret['redirect'] = $str;
-      //   }
-      // }
     }
     else if ($_POST['type'] == 'row') {
-      if (empty($table['options']['actions'])) fatalerr('No row actions defined in block ' . $_POST['src']);
-      if (!isset($_POST['action'])) fatalerr('No action id passed in mode function in block ' . $_POST['src']);
-      if (empty($table['options']['actions'][intval($_POST['action'])])) fatalerr('Action #' . $_POST['action'] . ' not found for table ' . $_POST['src']);
-      $action = $table['options']['actions'][intval($_POST['action'])];
-      if (empty($_POST['row'])) fatalerr('No row id passed in mode function in block ' . $_POST['src']);
-      if (!is_numeric($_POST['row'])) fatalerr('Invalid row id passed in mode function in block ' . $_POST['src']);
+      if (empty($table['options']['action'])) fatalerr('No actions defined in block ' . $_POST['src']);
+      if (!isset($_POST['action'])) fatalerr('No action id passed in mode action in block ' . $_POST['src']);
+      if (empty($table['options']['action'][intval($_POST['action'])])) fatalerr('Action #' . $_POST['action'] . ' not found for table ' . $_POST['src']);
+      $action = $table['options']['action'][intval($_POST['action'])];
+      if (empty($_POST['row'])) fatalerr('No row id passed in mode action in block ' . $_POST['src']);
+      if (!is_numeric($_POST['row'])) fatalerr('Invalid row id passed in mode action in block ' . $_POST['src']);
       $id = intval($_POST['row']);
       $data = lt_query($table['query'], $id);
-      if (empty($data['rows'])) fatalerr('Row with id ' . $_POST['row'] . ' not found in mode function in block ' . $_POST['src']);
+      if (empty($data['rows'])) fatalerr('Row with id ' . $_POST['row'] . ' not found in mode action in block ' . $_POST['src']);
       $ret['row'] = $data['rows'][0];
       // if (!empty($action['query'])) {
       //   $query = replaceHashes($action['query'], $row);
@@ -504,7 +491,7 @@ switch ($mode) {
       //   }
       // }
     }
-    else fatalerr('Invalid type in mode function');
+    else fatalerr('Invalid type in mode action');
 
     if (!empty($action['setvar'])) {
       foreach ($action['setvar'] as $name => $value) {
@@ -520,7 +507,7 @@ switch ($mode) {
       try {
         $ret['output'] = eval(replaceHashes($action['runphp'], $ret['row']));
       } catch (Exception $e) {
-        $ret['error'] = "PHP error in rowfunction runphp: " . $e->getMessage();
+        $ret['error'] = "PHP error in row action runphp: " . $e->getMessage();
       }
     }
     break;

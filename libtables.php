@@ -245,7 +245,7 @@ function prepare_options($options) {
       }
     }
   }
-  if (!empty($options['tablefunction']['hidecondition'])) $options['tablefunction']['hidecondition'] = lt_query_single($options['tablefunction']['hidecondition']);
+  if (!empty($options['tableaction']['hidecondition'])) $options['tableaction']['hidecondition'] = lt_query_single($options['tableaction']['hidecondition']);
   if (!empty($options['selectany'])) {
     $sa = $options['selectany'];
     if (!empty($sa['id'])) $tmp = lt_query('SELECT ' . $sa['fields'][1] . ' FROM ' . $sa['linktable'] . ' WHERE ' . $sa['fields'][0] . ' = ' . $sa['id']);

@@ -176,15 +176,15 @@ function doFunction(button, addparam) {
   let paramstr = "";
   if (addparam) paramstr = btoa('[ "' + addparam + '" ]');
 
-  if (button.hasClass('lt-tablefunc')) {
+  if (button.hasClass('lt-tableaction')) {
     $.ajax({
       method: 'post',
       url: ajaxUrl,
       dataType: 'json',
       context: tables[key].data,
-      data: { mode: 'function', type: 'table', src: tables[key].data.block + ':' + tables[key].data.tag, params: paramstr },
+      data: { mode: 'action', type: 'table', src: tables[key].data.block + ':' + tables[key].data.tag, params: paramstr },
       success: function(data) {
-        let action = this.options.tablefunction;
+        let action = this.options.tableaction;
         if (data.error) appError(data.error, table);
         if (data.output) {
           if (action.output == 'block') {
@@ -206,8 +206,8 @@ function doFunction(button, addparam) {
         }
         refreshTable(table, key);
         if (this.options.trigger) loadOrRefreshCollection($('#' + this.options.trigger));
-        // if (tables[key].data.options.tablefunction.trigger) loadOrRefreshCollection($('#' + tables[key].data.options.tablefunction.trigger));
-        // if (tables[key].data.options.tablefunction.replacetext) thead.find('.lt-tablefunc').val(tables[key].data.options.tablefunction.replacetext);
+        // if (tables[key].data.options.tableaction.trigger) loadOrRefreshCollection($('#' + tables[key].data.options.tableaction.trigger));
+        // if (tables[key].data.options.tableaction.replacetext) thead.find('.lt-tableaction').val(tables[key].data.options.tableaction.replacetext);
       }
     });
   }
@@ -220,9 +220,9 @@ function doFunction(button, addparam) {
       url: ajaxUrl,
       dataType: 'json',
       context: data,
-      data: { mode: 'function', type: 'row', src: data.block + ':' + data.tag, params: paramstr, row: data.active, action: actionid },
+      data: { mode: 'action', type: 'row', src: data.block + ':' + data.tag, params: paramstr, row: data.active, action: actionid },
       success: function(data) {
-        let action = this.options.actions[actionid];
+        let action = this.options.action[actionid];
         if (data.error) appError(data.error, table);
         if (data.output) {
           if (action.output == 'block') {
@@ -468,11 +468,11 @@ function refreshTable(table, key) {
         let options = tables[key].data.options;
         if (options.sum) updateSums(this.find('tfoot'), tables[key].data);
         if (options.callbacks && options.callbacks.change) window.setTimeout(options.callbacks.change.replace('#src', this.parent().data('source')), 0);
-        if (options.tablefunction && data.options && data.options.tablefunction && (data.options.tablefunction.hidecondition !== undefined)) {
-          options.tablefunction.hidecondition = data.options.tablefunction.hidecondition;
-          if (options.tablefunction.hidecondition) this.find('.lt-tablefunc').hide();
-          else this.find('.lt-tablefunc').show();
-        }
+        // if (options.tableaction && data.options && data.options.tableaction && (data.options.tableaction.hidecondition !== undefined)) {
+        //   options.tableaction.hidecondition = data.options.tableaction.hidecondition;
+        //   if (options.tableaction.hidecondition) this.find('.lt-tableac').hide();
+        //   else this.find('.lt-tableaction').show();
+        // }
       }
       tables[key].doingajax = false;
     }
@@ -828,19 +828,20 @@ function renderTitle(data) {
   //   str += '<span class="lt-fullscreen-button ' + (data.options.popout.icon_class?data.options.popout.icon_class:"") + '" ';
   //   str += 'onclick="toggleTableFullscreen($(this).closest(\'table\'));"></span>';
   // }
-  if (data.options.tablefunction && data.options.tablefunction.text) {
+  if (data.options.tableaction && data.options.tableaction.text) {
+    let action = data.options.tableaction;
     let disp;
-    if (data.options.tablefunction.hidecondition) disp = ' style="display: none;"';
+    if (action.hidecondition) disp = ' style="display: none;"';
     else disp = '';
-    if (data.options.tablefunction.confirm) {
-      str += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="if (confirm(\'' + tr(data.options.tablefunction.confirm);
-      str += '\')) doFunction(this);" value="' + tr(data.options.tablefunction.textparams) + '">';
+    if (action.confirm) {
+      str += '<input type="button" class="lt-tableaction"' + disp + ' onclick="if (confirm(\'' + tr(action.confirm);
+      str += '\')) doFunction(this);" value="' + tr(action.textparams) + '">';
     }
-    else if (data.options.tablefunction.addparam && data.options.tablefunction.addparam.text) {
-      str += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="if ((ret = prompt(\'' + tr(data.options.tablefunction.addparam.text);
-      str += '\')) != null) doFunction(this, ret);" value="' + tr(data.options.tablefunction.text) + '">';
+    else if (action.addparam && action.addparam.text) {
+      str += '<input type="button" class="lt-tableaction"' + disp + ' onclick="if ((ret = prompt(\'' + tr(action.addparam.text);
+      str += '\')) != null) doFunction(this, ret);" value="' + tr(action.text) + '">';
     }
-    else str += '<input type="button" class="lt-tablefunc"' + disp + ' onclick="doFunction(this);" value="' + escape(tr(data.options.tablefunction.text)) + '">';
+    else str += '<input type="button" class="lt-tableaction"' + disp + ' onclick="doFunction(this);" value="' + escape(tr(action.text)) + '">';
   }
   str += '</th></tr>';
  return str;
@@ -1304,7 +1305,7 @@ function renderRow(options, row) {
     html.push(renderCell(options, row, c));
   }
   if (options.appendcell) html.push('<td class="lt-cell lt-append">' + replaceHashes(options.appendcell, row) + '</td>');
-  if (options.actions) html.push(renderActions(options.actions, row));
+  if (options.action) html.push(renderActions(options.action, row));
   if (options.delete && row[0]) { // Special rows may have null for id; they can't be deleted so don't show the button
   let value;
     if (options.delete.text) value = options.delete.text;
@@ -1569,13 +1570,13 @@ function updateRow(options, tbody, oldrow, newrow) {
   if (changes) {
     let cell;
     if (options.pagetitle) document.title = replaceHashes(options.pagetitle, newrow);
-    if (options.actions) {
+    if (options.action) {
       if (options.format) cell = tbody.find('.lt-action');
       else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').find('.lt-action');
       if (cell.length) {
         let row = cell.parent();
         cell.remove();
-        row.append(renderActions(options.actions, newrow));
+        row.append(renderActions(options.action, newrow));
       }
     }
     if (options.appendcell) {

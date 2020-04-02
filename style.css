@@ -72,5 +72,5 @@ SPAN.lt-label-clear { position: absolute; right: -18px; top: 2px; }
 .container-fluid { padding-left: 25px; padding-right: 25px; }
 TD.lt-filter INPUT { width: 100%; }
 
-INPUT.lt-tablefunc { float: right; }
+INPUT.lt-tableaction { float: right; }
 INPUT.lt-add-option { margin-left: 5px; }
