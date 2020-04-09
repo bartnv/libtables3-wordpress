@@ -498,16 +498,39 @@ switch ($mode) {
         lt_setvar(replaceHashes($name, $ret['row']), replaceHashes($value, $ret['row']));
       }
     }
-    if (!empty($action['runblock'])) {
-      ob_start();
-      lt_print_block(replaceHashes($action['runblock'], $ret['row']));
-      $ret['output'] = ob_get_clean();
-    }
-    if (!empty($action['runphp'])) {
-      try {
-        $ret['output'] = eval(replaceHashes($action['runphp'], $ret['row']));
-      } catch (Exception $e) {
-        $ret['error'] = "PHP error in row action runphp: " . $e->getMessage();
+
+    $lt_sqloutput = '';
+    $lt_phpoutput = '';
+    $lt_blockoutput = '';
+    if (empty($action['runorder'])) $action['runorder'] = [ 'sql', 'php', 'block' ];
+    foreach ($action['runorder'] as $run) {
+      switch ($run) {
+        case 'sql':
+          if (!empty($action['runsql'])) {
+            $lt_sqloutput = lt_query_single(replaceHashes($action['runsql'], $ret['row']), [ 'lt_phpoutput' => $lt_phpoutput, 'lt_blockoutput' => $lt_blockoutput ]);
+            $ret['output'] = $lt_sqloutput;
+          }
+          break;
+        case 'php':
+          if (!empty($action['runphp'])) {
+            try {
+              $lt_phpoutput = eval(replaceHashes($action['runphp'], $ret['row']));
+              $ret['output'] = $lt_phpoutput;
+            } catch (Exception $e) {
+              $ret['error'] = "PHP error in row action runphp: " . $e->getMessage();
+            }
+          }
+          break;
+        case 'block':
+          if (!empty($action['runblock'])) {
+            ob_start();
+            lt_print_block(replaceHashes($action['runblock'], $ret['row']));
+            $lt_blockoutput = ob_get_clean();
+            $ret['output'] = $lt_blockoutput;
+          }
+          break;
+        default:
+          error_log('Invalid runorder option "$run" in action in block ' . $_POST['src']);
       }
     }
     break;
