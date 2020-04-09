@@ -160,7 +160,7 @@ jQuery.fn.extend({
   }
 });
 
-function doFunction(button, addparam) {
+function doAction(button, addparam) {
   button = $(button);
   let table, thead, fullscreen = button.closest('#lt-fullscreen-div');
   if (fullscreen.length) {
@@ -211,7 +211,7 @@ function doFunction(button, addparam) {
       }
     });
   }
-  else if (button.hasClass('lt-rowfunc')) {
+  else if (button.hasClass('lt-rowaction')) {
     let actionid = button.parent().data('actionid');
     let data = tables[key].data;
     data.active = button.closest('.lt-row').data('rowid');
@@ -222,7 +222,7 @@ function doFunction(button, addparam) {
       context: data,
       data: { mode: 'action', type: 'row', src: data.block + ':' + data.tag, params: paramstr, row: data.active, action: actionid },
       success: function(data) {
-        let action = this.options.action[actionid];
+        let action = this.options.rowaction[actionid];
         if (data.error) appError(data.error, table);
         if (data.output) {
           if (action.output == 'block') {
@@ -835,13 +835,13 @@ function renderTitle(data) {
     else disp = '';
     if (action.confirm) {
       str += '<input type="button" class="lt-tableaction"' + disp + ' onclick="if (confirm(\'' + tr(action.confirm);
-      str += '\')) doFunction(this);" value="' + tr(action.textparams) + '">';
+      str += '\')) doAction(this);" value="' + tr(action.textparams) + '">';
     }
     else if (action.addparam && action.addparam.text) {
       str += '<input type="button" class="lt-tableaction"' + disp + ' onclick="if ((ret = prompt(\'' + tr(action.addparam.text);
-      str += '\')) != null) doFunction(this, ret);" value="' + tr(action.text) + '">';
+      str += '\')) != null) doAction(this, ret);" value="' + tr(action.text) + '">';
     }
-    else str += '<input type="button" class="lt-tableaction"' + disp + ' onclick="doFunction(this);" value="' + escape(tr(action.text)) + '">';
+    else str += '<input type="button" class="lt-tableaction"' + disp + ' onclick="doAction(this);" value="' + escape(tr(action.text)) + '">';
   }
   str += '</th></tr>';
  return str;
@@ -1305,7 +1305,7 @@ function renderRow(options, row) {
     html.push(renderCell(options, row, c));
   }
   if (options.appendcell) html.push('<td class="lt-cell lt-append">' + replaceHashes(options.appendcell, row) + '</td>');
-  if (options.action) html.push(renderActions(options.action, row));
+  if (options.rowaction) html.push(renderActions(options.rowaction, row));
   if (options.delete && row[0]) { // Special rows may have null for id; they can't be deleted so don't show the button
   let value;
     if (options.delete.text) value = options.delete.text;
@@ -1380,13 +1380,16 @@ function renderCell(options, row, c, element) {
 
 function renderActions(actions, row) {
   let str = '';
+  let onclick = '';
   for (let i in actions)  {
     if (typeof actions[i] !== 'object') continue;
     str += '<td class="lt-cell lt-action" data-actionid="' + i + '" ';
     if (actions[i].condition) {
       if (!eval(replaceHashes(actions[i].condition, row))) str += ' style="display: none;"';
     }
-    str += '><input type="button" class="lt-rowfunc" value="' + replaceHashes(escape(tr(actions[i].name)), row) + '" onclick="doFunction(this)"></td>';
+    if (!actions[i].confirm) onclick = "doAction(this);";
+    else onclick = "if (confirm('" + replaceHashes(tr(actions[i].confirm), row) + "')) doAction(this);";
+    str += '><input type="button" class="lt-rowaction" value="' + replaceHashes(escape(tr(actions[i].name)), row) + '" onclick="' + onclick + '"></td>';
   }
   return str;
 }
@@ -1570,13 +1573,13 @@ function updateRow(options, tbody, oldrow, newrow) {
   if (changes) {
     let cell;
     if (options.pagetitle) document.title = replaceHashes(options.pagetitle, newrow);
-    if (options.action) {
+    if (options.rowaction) {
       if (options.format) cell = tbody.find('.lt-action');
       else cell = tbody.children('[data-rowid="' + oldrow[0] + '"]').find('.lt-action');
       if (cell.length) {
         let row = cell.parent();
         cell.remove();
-        row.append(renderActions(options.action, newrow));
+        row.append(renderActions(options.rowaction, newrow));
       }
     }
     if (options.appendcell) {

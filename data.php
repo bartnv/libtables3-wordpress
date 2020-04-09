@@ -474,10 +474,10 @@ switch ($mode) {
       }
     }
     else if ($_POST['type'] == 'row') {
-      if (empty($table['options']['action'])) fatalerr('No actions defined in block ' . $_POST['src']);
+      if (empty($table['options']['rowaction'])) fatalerr('No actions defined in block ' . $_POST['src']);
       if (!isset($_POST['action'])) fatalerr('No action id passed in mode action in block ' . $_POST['src']);
-      if (empty($table['options']['action'][intval($_POST['action'])])) fatalerr('Action #' . $_POST['action'] . ' not found for table ' . $_POST['src']);
-      $action = $table['options']['action'][intval($_POST['action'])];
+      if (empty($table['options']['rowaction'][intval($_POST['action'])])) fatalerr('Action #' . $_POST['action'] . ' not found for table ' . $_POST['src']);
+      $action = $table['options']['rowaction'][intval($_POST['action'])];
       if (empty($_POST['row'])) fatalerr('No row id passed in mode action in block ' . $_POST['src']);
       if (!is_numeric($_POST['row'])) fatalerr('Invalid row id passed in mode action in block ' . $_POST['src']);
       $id = intval($_POST['row']);
