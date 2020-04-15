@@ -274,9 +274,9 @@ function lt_col_nullable($table) {
     }
   }
   elseif ($dbtype == 'pgsql') {
-    if (!($res = $dbh->query("SELECT column_name, is_nullable FROM information_schema.columns WHERE table_name = '$table'"))) error_log('Libtables error: SQL-error: ' . $dbh->errorInfo()[2]);
+    if (!($res = $dbh->query("SELECT column_name, is_nullable, column_default FROM information_schema.columns WHERE table_name = '$table'"))) error_log('Libtables error: SQL-error: ' . $dbh->errorInfo()[2]);
     foreach ($res as $row) {
-      $result[$row['column_name']] = $row['is_nullable']=='YES'?true:false;
+      $result[$row['column_name']] = $row['is_nullable']=='YES'? true : (empty($row['column_default'])?false:true);
     }
   }
   if (empty($result)) error_log("Libtables error: lt_col_nullable('$table') failed to produce results");
