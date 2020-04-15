@@ -1172,12 +1172,12 @@ function renderOptions(select, list, required) {
   if (!required) select.append('<option value=""></option>');
   for (let i = 0; list.items[i]; i++) {
     let selected;
-    if (list.default && (list.default == list.items[i][1])) selected = ' selected';
-    else if (list.defaultid && (list.defaultid == list.items[i][0])) selected = ' selected';
+    if (select.default && (select.default == list.items[i][1])) selected = ' selected';
+    else if (select.defaultid && (select.defaultid == list.items[i][0])) selected = ' selected';
     else selected = '';
     select.append('<option value="' + list.items[i][0] + '"' + selected + '>' + list.items[i][1] + '</option>');
   }
-  if (!list.default && !list.defaultid) select.prop('selectedIndex', -1); // This selects nothing, rather than the first option
+  if (!select.default && !select.defaultid) select.prop('selectedIndex', -1); // This selects nothing, rather than the first option
 }
 
 function addOption(el, c) {
