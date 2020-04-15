@@ -1384,12 +1384,12 @@ function renderActions(actions, row) {
   for (let i in actions)  {
     if (typeof actions[i] !== 'object') continue;
     str += '<td class="lt-cell lt-action" data-actionid="' + i + '" ';
-    if (actions[i].condition) {
-      if (!eval(replaceHashes(actions[i].condition, row))) str += ' style="display: none;"';
+    if (actions[i].jscondition) {
+      if (!eval(replaceHashes(actions[i].jscondition, row))) str += ' style="display: none;"';
     }
     if (!actions[i].confirm) onclick = "doAction(this);";
     else onclick = "if (confirm('" + replaceHashes(tr(actions[i].confirm), row) + "')) doAction(this);";
-    str += '><input type="button" class="lt-rowaction" value="' + replaceHashes(escape(tr(actions[i].name)), row) + '" onclick="' + onclick + '"></td>';
+    str += '><input type="button" class="lt-rowaction" value="' + replaceHashes(escape(tr(actions[i].text)), row) + '" onclick="' + onclick + '"></td>';
   }
   return str;
 }
