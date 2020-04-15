@@ -1108,13 +1108,15 @@ function renderField(field, data, c) {
   if (field.required && (field.type != 'checkbox')) {
     input.prop('required', true);
     if (field.required.regex) input.prop('pattern', field.required.regex);
-    if (field.required.message) input.prop('title', field.required.message);
+    if (field.required.message) input.prop('title', tr(field.required.message));
   }
   if (field.default) {
     input.val(field.default);
     input.data('default', field.default);
   }
   if (field.placeholder) input.attr('placeholder', field.placeholder);
+  if (field.minlength) input.prop('minlength', field.minlength);
+  if (field.maxlength) input.prop('maxlength', field.maxlength);
   if (field.domid) input.attr('id', field.domid);
   if (field.class) input.addClass(field.class);
   return input;
