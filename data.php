@@ -275,11 +275,10 @@ switch ($mode) {
     if (isset($ret['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $src[0] . ' returned error: ' . $data['error']);
     if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $crc = crc32(json_encode($ret['rows'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PARTIAL_OUTPUT_ON_ERROR));
     elseif ($lt_settings['checksum'] == 'psql') $crc = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM (" . $table['query'] . ") AS q)");
-    if ($crc == $_GET['crc']) $ret = '{ "nochange": 1 }';
-    else {
-      $ret['crc'] = $crc;
-      if (!empty($table['options']['tableaction']['hidecondition'])) $ret['options']['tableaction']['hidecondition'] = lt_query_single($table['options']['tableaction']['hidecondition']);
-    }
+    if ($crc == $_GET['crc']) $ret = [ 'nochange' => 1 ]; // Overwrite output from lt_query since we don't need it
+    else $ret['crc'] = $crc;
+
+    if (!empty($table['options']['tableaction']['sqlcondition'])) $ret['options']['tableaction']['sqlcondition'] = (lt_query_count($table['options']['tableaction']['sqlcondition']) > 0);
     break;
   case 'refreshtext':
     if (empty($_GET['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_GET['src'])) fatalerr('Invalid src in mode refreshtext');

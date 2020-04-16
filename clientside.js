@@ -430,8 +430,9 @@ function refreshTable(table, key) {
           "&crc=" + tables[key].data.crc,
     context: table,
     success: function(data) {
+      let options = tables[key].data.options;
       if (data.error) appError(data.error, this);
-      else if (data.nochange);
+      else if (data.nochange); // No action
       else {
         tables[key].data.downloadtime = Date.now() - tables[key].start - data.querytime;
         if (tables[key].data.headers.length != data.headers.length) {
@@ -466,14 +467,13 @@ function refreshTable(table, key) {
         updateTable(tbody, tables[key].data, data.rows);
         tables[key].data.rows = data.rows;
         tables[key].data.crc = data.crc;
-        let options = tables[key].data.options;
         if (options.sum) updateSums(this.find('tfoot'), tables[key].data);
         if (options.callbacks && options.callbacks.change) window.setTimeout(options.callbacks.change.replace('#src', this.parent().data('source')), 0);
-        // if (options.tableaction && data.options && data.options.tableaction && (data.options.tableaction.hidecondition !== undefined)) {
-        //   options.tableaction.hidecondition = data.options.tableaction.hidecondition;
-        //   if (options.tableaction.hidecondition) this.find('.lt-tableac').hide();
-        //   else this.find('.lt-tableaction').show();
-        // }
+      }
+      if (options.tableaction && data.options && data.options.tableaction && ('sqlcondition' in data.options.tableaction)) {
+        options.tableaction.sqlcondition = data.options.tableaction.sqlcondition;
+        if (options.tableaction.sqlcondition) this.find('.lt-tableaction').show();
+        else this.find('.lt-tableaction').hide();
       }
       tables[key].doingajax = false;
     }
@@ -833,7 +833,7 @@ function renderTitle(data) {
   if (data.options.tableaction && data.options.tableaction.text) {
     let action = data.options.tableaction;
     let disp;
-    if (action.hidecondition) disp = ' style="display: none;"';
+    if (!action.sqlcondition) disp = ' style="display: none;"';
     else disp = '';
     if (action.confirm) {
       str += '<input type="button" class="lt-tableaction"' + disp + ' onclick="if (confirm(\'' + tr(action.confirm);
