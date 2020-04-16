@@ -546,9 +546,22 @@ function lt_query_check($query, $params = []) {
   return true;
 }
 
-function lt_query_count($query) {
+function lt_query_count($query, $params = []) {
   global $dbh;
-  if (!($res = $dbh->query('SELECT COUNT(*) FROM (' . $query . ') AS tmp'))) return -1;
+
+  $query = 'SELECT COUNT(*) FROM (' . $query . ') AS tmp';
+  if (!($res = $dbh->prepare($query))) {
+    error_log("Libtables error: query prepare failed: " . $dbh->errorInfo()[2]);
+    return -1;
+  }
+  try { lt_bind_params($res, $query, $params); } catch (Exception $e) {
+    error_log("Libtables error: " . $e->getMessage());
+    return -1;
+  }
+  if (!$res->execute()) {
+    error_log("Libtables error: query execute failed: " . $res->errorInfo()[2]);
+    return -1;
+  }
   if (!($row = $res->fetch())) return -1;
   if (!is_numeric($row[0])) return -1;
   return $row[0]+0;
