@@ -141,6 +141,28 @@ function replaceHashes($str, $row) {
   return $str;
 }
 
+function arrayCondition($condition, $row) {
+  $left = replaceHashes($condition[0], $row);
+  $right = replaceHashes($condition[2], $row);
+  switch ($condition[1]) {
+    case '==': return ($left == $right);
+    case '!=': return ($left != $right);
+    case '<=': return ($left <= $right);
+    case '<': return ($left < $right);
+    case '>=': return ($left >= $right);
+    case '>': return ($left > $right);
+    case 'regex':
+      $res = preg_match($right, $left);
+      if ($res === FALSE) error_log('Invalid regex in rowaction condition');
+      return $res;
+    case '!regex':
+      $res = preg_match($right, $left);
+      if ($res === FALSE) error_log('Invalid regex in rowaction condition');
+      return ($res === 0);
+    default: error_log('Invalid comparison in rowaction condition');
+  }
+}
+
 function lt_audit($mode, $table, $row, $column, $oldval, $newval) {
   global $lt_settings;
   global $dbh;
@@ -484,14 +506,16 @@ switch ($mode) {
       $data = lt_query($table['query'], $id);
       if (empty($data['rows'])) fatalerr('Row with id ' . $_POST['row'] . ' not found in mode action in block ' . $_POST['src']);
       $ret['row'] = $data['rows'][0];
-      // if (!empty($action['query'])) {
-      //   $query = replaceHashes($action['query'], $row);
-      //   if (!$dbh->query($query)) {
-      //     $ret['error'] = $dbh->errorInfo()[2];
-      //   }
-      // }
     }
     else fatalerr('Invalid type in mode action');
+
+    if (!empty($action['condition'])) {
+      if (!arrayCondition($action['condition'], $ret['row'])) {
+        if (!empty($action['condition'][3])) $ret['usererror'] = $action['condition'][3];
+        else $ret['usererror'] = 'Action currently not available';
+        break;
+      }
+    }
 
     if (!empty($action['setvar'])) {
       foreach ($action['setvar'] as $name => $value) {
@@ -514,7 +538,9 @@ switch ($mode) {
         case 'php':
           if (!empty($action['runphp'])) {
             try {
-              $lt_phpoutput = eval(replaceHashes($action['runphp'], $ret['row']));
+              ob_start();
+              eval(replaceHashes($action['runphp'], $ret['row']));
+              $lt_phpoutput = ob_get_clean();
               $ret['output'] = $lt_phpoutput;
             } catch (Exception $e) {
               $ret['error'] = "PHP error in row action runphp: " . $e->getMessage();

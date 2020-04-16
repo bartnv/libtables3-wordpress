@@ -440,7 +440,7 @@ function lt_query($query, $id = 0) {
 
     // Do datatype correction because PHP PDO is dumb about floating point values
     for ($i = 0; $i < $res->columnCount(); $i++) {
-      if ($ret['types'][$i] == 'float4') {
+      if (substr($ret['types'][$i], 0, 5) == 'float') {
         foreach ($ret['rows'] as &$row) $row[$i] = floatval($row[$i]);
       }
     }

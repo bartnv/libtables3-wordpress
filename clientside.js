@@ -65,7 +65,7 @@ function escape(val) {
 }
 
 function userError(msg) {
-  alert(tr('Error') + ': ' + msg);
+  alert(tr('Error') + ': ' + tr(msg));
 }
 function appError(msg, context) {
   console.log('Error: ' + msg);
@@ -224,6 +224,7 @@ function doAction(button, addparam) {
       success: function(data) {
         let action = this.options.rowaction[actionid];
         if (data.error) appError(data.error, table);
+        if (data.usererror) userError(data.usererror);
         if (data.output) {
           if (action.output == 'block') {
             $('#block_' + this.block).replaceWith(data.output);
@@ -374,7 +375,7 @@ function loadTable(div, attr, sub) {
     div.empty().append(tables[key].table);
     div.removeAttr('embedded');
   }
-  else if (tables[key]) {
+  else if (tables[key] && tables[key].data.rowcount != -1) {
     if (tables[key].doingajax) {
       console.log('Skipping load for', key, '(already in progress)');
       return;
@@ -559,11 +560,12 @@ function goPage(tableId, which) {
   if (data.options.limit) table.find('.lt-pages').html(tr('Page') + ' ' + data.options.page + ' ' + tr('of') + ' ' + Math.ceil(rowcount/data.options.limit));
 }
 
-function replaceHashes(str, row) {
+function replaceHashes(str, row, returntype = false) {
   if (str.indexOf('#') >= 0) {
     str = str.replace(/#id/g, row[0]);
     for (let c = row.length-1; c >= 0; c--) {
       if (str.indexOf('#'+c) >= 0) {
+        if (returntype && (str == '#'+c)) return row[c];
         let content;
         if (row[c] === null) content = '';
         else content = String(row[c]).replace('#', '\0');
@@ -1386,14 +1388,33 @@ function renderActions(actions, row) {
   for (let i in actions)  {
     if (typeof actions[i] !== 'object') continue;
     str += '<td class="lt-cell lt-action" data-actionid="' + i + '" ';
-    if (actions[i].jscondition) {
-      if (!eval(replaceHashes(actions[i].jscondition, row))) str += ' style="display: none;"';
+    // if (actions[i].jscondition) {
+    //   if (!eval(replaceHashes(actions[i].jscondition, row))) str += ' style="display: none;">';
+    // }
+    if (actions[i].condition) {
+      if (!arrayCondition(actions[i].condition, row)) str += ' style="display: none;"';
     }
     if (!actions[i].confirm) onclick = "doAction(this);";
     else onclick = "if (confirm('" + replaceHashes(tr(actions[i].confirm), row) + "')) doAction(this);";
     str += '><input type="button" class="lt-rowaction" value="' + replaceHashes(escape(tr(actions[i].text)), row) + '" onclick="' + onclick + '"></td>';
   }
   return str;
+}
+
+function arrayCondition(condition, row) {
+  let left = (typeof condition[0] == 'string'?replaceHashes(condition[0], row, true):condition[0]);
+  let right = (typeof condition[2] == 'string'?replaceHashes(condition[2], row, true):condition[2]);
+  switch (condition[1]) {
+    case '==': return (left == right);
+    case '!=': return (left != right);
+    case '<=': return (left <= right);
+    case '<': return (left < right);
+    case '>=': return (left >= right);
+    case '>': return (left > right);
+    case 'regex': return new RegExp(right).test(left);
+    case '!regex': return !(new RegExp(right).test(left));
+    default: console.err('Invalid comparison in rowaction condition');
+  }
 }
 
 function calcSums(tfoot, data, update) {
