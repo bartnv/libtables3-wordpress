@@ -2049,67 +2049,82 @@ function doInsert(el) {
       return xhr;
     },
     success: function(data) {
+      let table = this.closest('table');
+      let tabledata = tables[table.attr('id')].data;
+      let insert = tabledata.options.insert;
+
       if (data.error) {
         el.css('background', 'rgb(255,0,0)');
         userError(data.error);
+        return;
       }
-      else if (data.replace) {
-        let parent = this.closest('.lt-div').parent();
-        parent.empty().html(data.replace);
-        loadOrRefreshCollection(parent.find('.lt-div'));
-        parent.find('.lt-control:visible').each(function() {
-          let attr = $(this).data();
-          loadControl($(this), attr);
+      if (data.output) {
+        if (insert.output == 'block') {
+          let parent = $('#block_' + tabledata.block).parent();
+          $('#block_' + tabledata.block).replaceWith(data.output);
+          loadOrRefreshCollection(parent.find('.lt-div'));
+          parent.find('.lt-control:visible').each(function() {
+            loadControl($(this), $(this).data());
+          });
+          return;
+        }
+        if (insert.output == 'location') {
+          window.location = data.output;
+          return;
+        }
+        if (insert.output == 'alert') alert(data.output);
+        else if (insert.output == 'function') {
+          if (!insert.functionname) {
+            console.log('Source ' + tables[key].data.block + ':' + tables[key].data.tag + ' has an insert with output type function without a functionname parameter');
+            return;
+          }
+          window[insert.functionname](data.output);
+        }
+      }
+
+      if (!tabledata.options.insert || (tabledata.options.insert.noclear !== true)) {
+        this.find('input,select,textarea').each(function() {
+          let el = $(this);
+          if (el.prop('type') == 'button') el.css('background', '');
+          else if (el.data('default')) {
+            if (el.prop('nodeName') == 'SELECT') el.find('option').contents().filter(function() { return this.nodeValue == el.data('default'); }).parent().prop('selected', true);
+            else el.val(el.data('default'));
+          }
+          else if (el.prop('nodeName') == 'SELECT') el.prop('selectedIndex', -1);
+          else if (el.prop('type') == 'date') el.val(new Date().toISOString().slice(0, 10));
+          else if (el.prop('type') == 'checkbox') el.prop('checked', false);
+          else if (el.hasClass('lt-addoption')) switchToSelect(el);
+          else el.val('');
+          el.removeClass('lt-check-validity');
         });
       }
-      else {
-        let table = this.closest('table');
-        let tabledata = tables[table.attr('id')].data;
 
-        if (!tabledata.options.insert || (tabledata.options.insert.noclear !== true)) {
-          this.find('input,select,textarea').each(function() {
-            let el = $(this);
-            if (el.prop('type') == 'button') el.css('background', '');
-            else if (el.data('default')) {
-              if (el.prop('nodeName') == 'SELECT') el.find('option').contents().filter(function() { return this.nodeValue == el.data('default'); }).parent().prop('selected', true);
-              else el.val(el.data('default'));
-            }
-            else if (el.prop('nodeName') == 'SELECT') el.prop('selectedIndex', -1);
-            else if (el.prop('type') == 'date') el.val(new Date().toISOString().slice(0, 10));
-            else if (el.prop('type') == 'checkbox') el.prop('checked', false);
-            else if (el.hasClass('lt-addoption')) switchToSelect(el);
-            else el.val('');
-            el.removeClass('lt-check-validity');
-          });
+      if (data.rows && data.rows.length) {
+        let tbody = table.find('tbody');
+        if (!tbody.length) {
+          tbody = $('<tbody/>');
+          table.prepend(tbody);
+        }
+        let thead = table.find('thead');
+        if (!thead.length) {
+          thead = $('<thead/>');
+          if (table.closest('.lt-div').data('sub') != 'true') thead.append(renderTitle(tabledata));
+          thead.append(renderHeaders(tabledata, table.attr('id')));
+          table.prepend(thead);
         }
 
-        if (data.rows && data.rows.length) {
-          let tbody = table.find('tbody');
-          if (!tbody.length) {
-            tbody = $('<tbody/>');
-            table.prepend(tbody);
-          }
-          let thead = table.find('thead');
-          if (!thead.length) {
-            thead = $('<thead/>');
-            if (table.closest('.lt-div').data('sub') != 'true') thead.append(renderTitle(tabledata));
-            thead.append(renderHeaders(tabledata, table.attr('id')));
-            table.prepend(thead);
-          }
-
-          updateTable(tbody, tabledata, data.rows);
-          tabledata.rows = data.rows;
-          tabledata.crc = data.crc;
-          if (tabledata.options.sum) updateSums(table.find('tfoot'), tabledata);
-        }
-        if (tabledata.options.trigger) loadOrRefreshCollection($('#' + tabledata.options.trigger));
-        else if (tabledata.options.insert.trigger) loadOrRefreshCollection($('#' + tabledata.options.insert.trigger));
-        else if ((tabledata.options.insert.include == 'edit') && tabledata.options.edit.trigger) loadOrRefreshCollection($('#' + tabledata.options.edit.trigger));
-        if (tabledata.options.insert.onsuccessalert) alert(tabledata.options.insert.onsuccessalert);
-        if (tabledata.options.insert.onsuccessscript) eval(tabledata.options.insert.onsuccessscript);
-
-        this.find('input,select,textarea').first().focus();
+        updateTable(tbody, tabledata, data.rows);
+        tabledata.rows = data.rows;
+        tabledata.crc = data.crc;
+        if (tabledata.options.sum) updateSums(table.find('tfoot'), tabledata);
       }
+      if (tabledata.options.trigger) loadOrRefreshCollection($('#' + tabledata.options.trigger));
+      else if (tabledata.options.insert.trigger) loadOrRefreshCollection($('#' + tabledata.options.insert.trigger));
+      else if ((tabledata.options.insert.include == 'edit') && tabledata.options.edit.trigger) loadOrRefreshCollection($('#' + tabledata.options.edit.trigger));
+      if (tabledata.options.insert.onsuccessalert) alert(tabledata.options.insert.onsuccessalert);
+      if (tabledata.options.insert.onsuccessscript) eval(tabledata.options.insert.onsuccessscript);
+
+      this.find('input,select,textarea').first().focus();
     }
   });
 }

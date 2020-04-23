@@ -739,16 +739,48 @@ switch ($mode) {
 
     $dbh->query('COMMIT'); // Any errors will exit through fatalerr() and thus cause an implicit rollback
 
-    if (!empty($tableinfo['options']['insert']['next'])) {
-      ob_start();
-      lt_setvar('insertid', $id);
-      lt_print_block($tableinfo['options']['insert']['next']);
-      $ret['replace'] = ob_get_clean();
-      break;
+    $ret = [];
+    $lt_sqloutput = '';
+    $lt_phpoutput = '';
+    $lt_blockoutput = '';
+    $insert = $tableinfo['options']['insert'];
+    lt_setvar('insertid', $id);
+    if (empty($insert['runorder'])) $insert['runorder'] = [ 'sql', 'php', 'block' ];
+    foreach ($insert['runorder'] as $run) {
+      switch ($run) {
+        case 'sql':
+          if (!empty($insert['runsql'])) {
+            $lt_sqloutput = lt_query_single($insert['runsql'], [ 'lt_phpoutput' => $lt_phpoutput, 'lt_blockoutput' => $lt_blockoutput ]);
+            $ret['output'] = $lt_sqloutput;
+          }
+          break;
+        case 'php':
+          if (!empty($insert['runphp'])) {
+            try {
+              ob_start();
+              eval($insert['runphp']);
+              $lt_phpoutput = ob_get_clean();
+              $ret['output'] = $lt_phpoutput;
+            } catch (Exception $e) {
+              $ret['error'] = "PHP error in insert runphp: " . $e->getMessage();
+            }
+          }
+          break;
+        case 'block':
+          if (!empty($insert['runblock'])) {
+            ob_start();
+            lt_print_block($insert['runblock'], [ 'nowrapper' => ($insert['output']=='block'?false:true) ]);
+            $lt_blockoutput = ob_get_clean();
+            $ret['output'] = $lt_blockoutput;
+          }
+          break;
+        default:
+          error_log('Invalid runorder option "$run" in insert in block ' . $_POST['src']);
+      }
     }
 
     if (is_string($tableinfo['query'])) {
-      $ret = lt_query($tableinfo['query']);
+      $ret += lt_query($tableinfo['query']);
       if (isset($ret['error'])) fatalerr('Query for table ' . $tableinfo['title'] . ' in block ' . $src[0] . ' returned error: ' . $ret['error']);
       if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $ret['crc'] = crc32(json_encode($ret['rows'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PARTIAL_OUTPUT_ON_ERROR));
       elseif ($lt_settings['checksum'] == 'psql') {
@@ -756,7 +788,7 @@ switch ($mode) {
         if (strpos($ret['crc'], 'Error:') === 0) fatalerr('<p>Checksum query for table ' . $tableinfo['title'] . ' returned error: ' . substr($ret['crc'], 6));
       }
     }
-    else $ret = [ 'status' => 'ok' ];
+    else $ret['status'] = 'ok';
     break;
   case 'deleterow':
     if (empty($_POST['src']) || !preg_match('/^[a-z0-9_-]+:[a-z0-9_-]+$/', $_POST['src'])) fatalerr('Invalid src in mode deleterow');

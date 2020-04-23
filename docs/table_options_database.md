@@ -105,7 +105,6 @@ Include example:
     * submit (string): label to be used as a text on the insert button
     * class (string): CSS class name to set on the input element, in addition to the default ones
     * trigger (string): refresh the indicated other table whenever this table is changed through edit; needs to contain the 'tag' name of the other table
-    * next (string): when the insert button is clicked, replace this block with the block named in this option; within the new block the new entry's insert id is available using lt_getvar('insertid') or ":insertid" in a query.
     * include (string): input definitions to reuse; currently only supports 'edit' to use the edit-definitions
     * noclear (boolean): if set to true, the insert input fields are not cleared after each insert is done
     * onsuccessalert (string): text to show in a javascript alert() after the insert was done succesfully
@@ -113,6 +112,12 @@ Include example:
     * hidden (array): hidden data to insert alongside the user-entered fields (may also be an array of arrays to insert multiple hidden fields)
         * target (string): the column to store the hidden data in &lt;table>.&lt;column> format
         * value (string): the value to store; this is commonly an lt_getvar() call
+    * runsql (string): query to run on the database when the action button is clicked; the new entry's insert id is available using ":insertid" in the query; for output, if any, only the first column of the first row is returned as a string
+    * runphp (string): php code to run when the action button is clicked; the new entry's insert id is available using lt_getvar('insertid') in the PHP
+    * runblock (string): libtables block to run when the action button is clicked; the new entry's insert id is available within the block using lt_getvar('insertid') in PHP or ":insertid" in a query
+    * runorder (array): define the order in which the run* options are executed; the default order is [ 'sql', 'php', 'block' ]; [Notes about output variables](#-output-variables)
+    * output (string): how to use the output coming out of the last of the runsql/runphp/runblock parameters (as defined by runorder above); valid options are 'block', 'alert', 'location' or 'function';
+    * functionname (string): the name of the javascript function to run when using output: 'function'
 
 Full example:
 ```php
@@ -134,6 +139,8 @@ Full example:
     ]
   ]
 ```
+
+Examples for the run* options (including output and function) can be seen under the 'action' section below.
 
 # delete
   * delete (array): render a row-delete button at the end of each row
