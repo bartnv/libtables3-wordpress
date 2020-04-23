@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Libtables3 Wordpress
+Plugin Name: Libtables3 Wordpress Integration
 Plugin URI: https://github.com/bartnv/libtables3-wordpress
 Description: WordPress plugin for Libtables integration
 Version: 3.0
