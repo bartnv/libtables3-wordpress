@@ -319,6 +319,7 @@ function lt_print_block($block, $options = array()) {
   $basename_prev = $basename;
   $basename = $block;
   $block_options = $options;
+  if (!isset($block_options['nowrapper'])) $block_options['nowrapper'] = false;
 
   // if ($lt_settings['security'] == 'php') {
   //   if (empty($lt_settings['allowed_blocks_query'])) {
@@ -340,14 +341,16 @@ function lt_print_block($block, $options = array()) {
   if (is_array($lt_settings['blocks_dir'])) $dirs = $lt_settings['blocks_dir'];
   else $dirs[] = $lt_settings['blocks_dir'];
 
-  print '<div id="block_' . $basename . '" class="lt-block';
-  if (!empty($block_options['class'])) print ' ' . $block_options['class'];
-  print "\">\n";
+  if (!$block_options['nowrapper']) {
+    print '<div id="block_' . $basename . '" class="lt-block';
+    if (!empty($block_options['class'])) print ' ' . $block_options['class'];
+    print "\">\n";
+  }
 
   foreach($dirs as $dir) {
     if (file_exists($dir . $basename . '.html')) {
       readfile($dir . $basename . '.html');
-      print "</div>\n";
+      if (!$block_options['nowrapper']) print "</div>\n";
       $basename = $basename_prev;
       return;
     }
@@ -364,7 +367,7 @@ function lt_print_block($block, $options = array()) {
           lt_table($table[0], $table[1], $table[2], isset($table[3])?$table[3]:array());
         }
       }
-      print "</div>\n";
+      if (!$block_options['nowrapper']) print "</div>\n";
       $basename = $basename_prev;
       return;
     }
@@ -374,7 +377,7 @@ function lt_print_block($block, $options = array()) {
       } catch (Exception $e) {
         print "PHP error in block $basename: " . $e->getMessage();
       }
-      print "</div>\n";
+      if (!$block_options['nowrapper']) print "</div>\n";
       $basename = $basename_prev;
       return $ret;
     }
