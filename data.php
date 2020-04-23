@@ -29,9 +29,19 @@ function fatalerr($msg, $redirect = "") {
   $ret['error'] = $msg;
   if (!empty($lt_settings['error_rewrite'])) {
     foreach ($lt_settings['error_rewrite'] as $key => $value) {
-      if (strpos($msg, $key) !== FALSE) {
-        $ret['error'] = $value;
-        $ret['details'] = $msg;
+      if ($key[0] != '/') {
+        if (strpos($msg, $key) !== FALSE) {
+          $ret['error'] = $value;
+          $ret['details'] = $msg;
+        }
+      }
+      else {
+        $res = preg_match($key, $msg);
+        if ($res === false) error_log("Regular expression syntax error in error_rewrite entry '$key'");
+        if ($res) {
+          $ret['error'] = preg_replace($key, $value, $msg);
+          $ret['details'] = $msg;
+        }
       }
     }
   }
