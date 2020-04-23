@@ -2,6 +2,7 @@ site_name: Libtables3 Documentation
 pages:
   - Home: index.md
   - Concepts: concepts.md
+  - Configuration: configuration.md
   - Functions: functions.md
   - lt_table() display options: table_options_display.md
   - lt_table() database mutation options: table_options_database.md

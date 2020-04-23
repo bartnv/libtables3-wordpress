@@ -45,7 +45,7 @@ $lt_settings = [
 
   * Modify the PDO connection string to match your local configuration (see [PHP PDO documentation](https://secure.php.net/manual/en/pdo.construct.php))
   * Set the 'blocks_dir' to your chosen subdirectory name ending with a slash
-  * Leave the 'error_rewrite' array empty for now; it can later be used to translate SQL errors into more user-friendly messages
+  * Leave the 'error_rewrite' array empty for now; it can later be used to translate SQL errors into more user-friendly messages (see [Libtables configuration](configuration/) for more information)
   * Likewise for the 'id_columns' array; it is only needed if your primary key columns are not named 'id'
 
 Integration of Libtables3 exists for WordPress. Installation is different in this case. See:
