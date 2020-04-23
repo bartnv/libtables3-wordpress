@@ -264,7 +264,7 @@ function lt_col_nullable($table) {
   if ($dbtype == 'mysql') {
     if (!($res = $dbh->query("DESC $table"))) error_log('Libtables error: SQL-error: ' . $dbh->errorInfo()[2]);
     foreach ($res as $row) {
-      $result[$row['Field']] = $row['Null']=="YES"?true:false;
+      $result[$row['Field']] = $row['Null']=="YES" ? true : ($row['Default']===null?false:true);
     }
   }
   elseif ($dbtype == 'sqlite') {
