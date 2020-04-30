@@ -6,6 +6,7 @@ in your site's PHP code, as long as you include() the 'libtables.php' file.
 
 [^1]: for an explanation on blocks, read the [concepts item on blocks](concepts/#blocks)
 
+
 ## lt_table
 
 The lt_table() function adds a table to the current block.
@@ -29,6 +30,7 @@ See [lt_table() options](table_options_display/) for more information.
 
 [^2]: in special cases you can pass in an array of column names instead of a query, to generate
 a 'table' with no data but only insert fields (deprecated in favor of the lt_insert function below)
+
 
 ## lt_insert
 
@@ -56,6 +58,7 @@ Basic example:
 
 All insert functionality from [lt_table() database mutation options](table_options_database/) can be used here.
 
+
 ## lt_print_block
 
 Insert the contents of the specified Libtables block at this point in your website code.
@@ -78,9 +81,66 @@ Parameters:
 
 This function is the primary way to integrate the libtables functionality in your own PHP code.
 
+
 ## lt_setvar, lt_getvar, lt_isvar
 
-Manipulate the secure serverside variables used by Libtables.
+Manipulate the serverside session variables used by Libtables.
+
+### - Setting variables
+
+Syntax to set a Libtables variable:
+
+    lt_setvar(varname, value)
+
+for instance:
+
+```php
+  lt_setvar('userid', $userid);
+```
+
+This saves the short-lived PHP variable $userid as a persistent Libtables variable. An alternative
+syntax can be used to save for instance $\_GET and $\_POST variable into a Libtables variable. The
+Libtables variable will not be changed if the key doesn't exist in the array.
+
+    lt_setvar(varname, array, key)
+
+for instance:
+
+```php
+  lt_setvar('confirmationcode', $_GET, 'code')
+```
+
+### - Reading variables
+
+Syntax to use a variable:
+
+    lt_getvar(varname, defaultvalue)
+
+for instance:
+
+```php
+  lt_getvar('userid', 0)
+```
+
+Specifying a default value is optional. However, if you use lt_getvar with a nonexistent varname
+and no defaultvalue, Libtables will throw a PHP exception. This is a security feature intended to
+prevent users from accessing blocks they are not supposed to.
+
+Libtables variables can also be used in all SQL queries issued from within libtables by using
+named parameter syntax (eg. "SELECT * FROM product WHERE id = :product").
+
+### - Testing variables
+
+To test for the existence of a variable without the risk of getting an exception:
+
+    lt_isvar(varname)
+
+for instance:
+
+```php
+  if (!lt_isvar('userid')) print 'Error: you are not logged in';
+```
+
 
 ## lt_query_single
 
@@ -101,7 +161,8 @@ Parameters:
   lt_query_single('SELECT city.populationcount FROM city WHERE name = :name', [ 'name' => $_POST['cityname'] ]);
 ```
 
-Reminder: don't use $_POST variables within a libtables block, use lt_setvar() instead
+Reminder: don't use $\_POST variables within a libtables block, use lt_setvar() instead
+
 
 ## lt_control [experimental]
 
@@ -129,6 +190,7 @@ Parameters:
     'class' => 'importantButton'
   ]);
 ```
+
 
 ## lt_text [experimental]
 

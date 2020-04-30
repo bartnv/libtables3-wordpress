@@ -52,7 +52,7 @@ of another block.
 
 ## Variables
 
-You should not use global PHP variables like $_SESSION or $_GET in blocks, because
+You should not use global PHP variables like $\_SESSION or $\_GET in blocks, because
 Libtables calls blocks on AJAX context where they may not be available. To store state
 between blocks, such as 'the logged in user' or 'the currently selected product', you
 should use the lt_setvar(), lt_getvar() and lt_isvar() functions instead.
