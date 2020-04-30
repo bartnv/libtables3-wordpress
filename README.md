@@ -8,3 +8,7 @@ framework for building web-applications on relational databases
   * jQuery: version 3.0 or newer
   * Browser: ECMAscript 2015 (ES6) support
   * Database: PostgreSQL 9.5+, MySQL 5.6+, MariaDB 10.0+ or SQLite 3+
+
+## WordPress integration
+
+There is also a version of Libtables 3 available for use within WordPress. See [libtables3-wordpress](https://github.com/bartnv/libtables3-wordpress/).
