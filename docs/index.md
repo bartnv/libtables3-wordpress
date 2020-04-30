@@ -38,7 +38,7 @@ $lt_settings = [
   'transl_query' => "SELECT id, orig, nl_NL, en_US FROM interface_translate",
   'error_rewrite' => [
   ],
-  'id_columns' => [
+  'pk_columns' => [
   ]
 ];
 ```
@@ -46,7 +46,7 @@ $lt_settings = [
   * Modify the PDO connection string to match your local configuration (see [PHP PDO documentation](https://secure.php.net/manual/en/pdo.construct.php))
   * Set the 'blocks_dir' to your chosen subdirectory name ending with a slash
   * Leave the 'error_rewrite' array empty for now; it can later be used to translate SQL errors into more user-friendly messages (see [Libtables configuration](configuration/) for more information)
-  * Likewise for the 'id_columns' array; it is only needed if your primary key columns are not named 'id'
+  * Likewise for the 'pk_columns' array; it is only needed if your primary key columns are not named 'id'
 
 Integration of Libtables3 exists for WordPress. Installation is different in this case. See:
    * https://github.com/bartnv/libtables3-wordpress
@@ -56,3 +56,4 @@ Integration of Libtables3 exists for WordPress. Installation is different in thi
   * Make sure all block files start with "<?php "
   * Change all parameters (SQL ? positional and $params) to the new lt_setvar() system
   * Change all $_SESSION variables to also use the lt_setvar() system
+  * Change $lt_settings['id_columns'] into $lt_settings['pk_columns']

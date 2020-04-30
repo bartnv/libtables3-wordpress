@@ -78,6 +78,10 @@ Parameters:
 
 This function is the primary way to integrate the libtables functionality in your own PHP code.
 
+## lt_setvar, lt_getvar, lt_isvar
+
+Manipulate the secure serverside variables used by Libtables.
+
 ## lt_query_single
 
 Returns the value of the first row, first column resulting from the passed query
