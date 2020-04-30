@@ -1,3 +1,5 @@
+[![Documentation Status](https://readthedocs.org/projects/libtables3/badge/?version=latest)](https://libtables3.readthedocs.io/en/latest/?badge=latest)
+
 # libtables3
 framework for building web-applications on relational databases
 
