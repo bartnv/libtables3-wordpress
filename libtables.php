@@ -30,13 +30,18 @@ if (is_file('local.php')) {
 
 $tables = [];
 
-function lt_setvar($name, $value) {
-  if ($value === NULL) unset($_SESSION[$name]);
+function lt_setvar($name, $value, $key = null) {
+  if ($key !== null) {
+    if (!is_array($value)) throw new Exception('Libtables error: lt_setvar used with third parameter without an array as second');
+    if (!isset($value[$key])) return;
+    $value = $value[$key];
+  }
+  if ($value === null) unset($_SESSION[$name]);
   else $_SESSION[$name] = $value;
 }
-function lt_getvar($name, $default = NULL) {
+function lt_getvar($name, $default = null) {
   if (isset($_SESSION[$name])) return $_SESSION[$name];
-  if ($default === NULL) throw new Exception("Undefined libtables variable '$name' used in block");
+  if ($default === null) throw new Exception("Undefined libtables variable '$name' used in block");
   return $default;
 }
 function lt_isvar($name) {
