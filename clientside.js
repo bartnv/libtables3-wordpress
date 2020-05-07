@@ -188,7 +188,9 @@ function doAction(button, addparam) {
         if (data.error) appError(data.error, table);
         if (data.output) {
           if (action.output == 'block') {
-            $('#block_' + this.block).replaceWith(data.output);
+            // $('#block_' + this.block).replaceWith(data.output);
+            let coll = $(data.output).replaceAll('#block_' + this.block);
+            loadOrRefreshCollection(coll.find('.lt-div'));
             return;
           }
           if (action.output == 'location') {
