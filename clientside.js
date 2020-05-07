@@ -1517,7 +1517,7 @@ function updateTable(tbody, data, newrows) {
     for (let j = 0; j < newrows.length; j++) {
       if (oldrows[i][0] == newrows[j][0]) { // Row remains
         if (!data.options.format || (i+1 == data.options.page)) updateRow(data.options, tbody, oldrows[i], newrows[j]);
-        newrows.remove(j);
+        newrows.splice(j, 1);
         found = 1;
         break;
       }
@@ -2207,7 +2207,7 @@ function doDelete(el) {
           appError('Deleted row not found', newrows);
           return;
         }
-        newrows.remove(r);
+        newrows.splice(r, 1);
         updateTable(this, table, newrows);
         table.rows = newrows;
         table.crc = data.crc;
@@ -2380,12 +2380,12 @@ function calendarDelete(src, id, successFunc) {
  *                       *
  * * * * * * * * * * * * */
 
-// Array Remove - By John Resig (MIT licensed) - http://ejohn.org/blog/javascript-array-remove/
-Array.prototype.remove = function(from, to) {
-  let rest = this.slice((to || from) + 1 || this.length);
-  this.length = from < 0 ? this.length + from : from;
-  return this.push.apply(this, rest);
-};
+// // Array Remove - By John Resig (MIT licensed) - http://ejohn.org/blog/javascript-array-remove/
+// Array.prototype.remove = function(from, to) {
+//   let rest = this.slice((to || from) + 1 || this.length);
+//   this.length = from < 0 ? this.length + from : from;
+//   return this.push.apply(this, rest);
+// };
 
 // ES6 String.startsWith() polyfill - Public domain - https://developer.mozilla.org/nl/docs/Web/JavaScript/Reference/Global_Objects/String/startsWith#Polyfill
 if (!String.prototype.startsWith) {
