@@ -1387,18 +1387,25 @@ function renderCell(options, row, c, element) {
 function renderActions(actions, row) {
   let str = '';
   let onclick = '';
+  let action;
   for (let i in actions)  {
-    if (typeof actions[i] !== 'object') continue;
+    if (typeof actions.text == 'string') {
+      action = actions;
+      i = 0;
+    }
+    else if (typeof actions[i] !== 'object') continue;
+    else action = actions[i];
     str += '<td class="lt-cell lt-action" data-actionid="' + i + '" ';
     // if (actions[i].jscondition) {
     //   if (!eval(replaceHashes(actions[i].jscondition, row))) str += ' style="display: none;">';
     // }
-    if (actions[i].condition) {
-      if (!arrayCondition(actions[i].condition, row)) str += ' style="display: none;"';
+    if (action.condition) {
+      if (!arrayCondition(action.condition, row)) str += ' style="display: none;"';
     }
-    if (!actions[i].confirm) onclick = "doAction(this);";
-    else onclick = "if (confirm('" + replaceHashes(tr(actions[i].confirm), row) + "')) doAction(this);";
-    str += '><input type="button" class="lt-rowaction" value="' + replaceHashes(escape(tr(actions[i].text)), row) + '" onclick="' + onclick + '"></td>';
+    if (!action.confirm) onclick = "doAction(this);";
+    else onclick = "if (confirm('" + replaceHashes(tr(action.confirm), row) + "')) doAction(this);";
+    str += '><input type="button" class="lt-rowaction" value="' + replaceHashes(escape(tr(action.text)), row) + '" onclick="' + onclick + '"></td>';
+    if (typeof actions.text == 'string') break;
   }
   return str;
 }
