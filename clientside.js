@@ -937,7 +937,7 @@ function renderTableGrid(table, data, sub) {
   if ((data.rows && data.rows.length) || (data.rowcount >= 0) || data.options.emptytabletext) { // rowcount is set for exports with nopreview=true
     thead.append(renderHeaders(data, table.attr('id')));
   }
-  else if (data.options.hideifempty) {
+  else if (data.options.hidetableifempty) {
     table.hide();
     table.parent().data('crc', data.crc);
     return;
@@ -1273,7 +1273,7 @@ function renderTbody(tbody, data) {
   else offset = 0;
 
   if (!data.rows.length && data.options.emptytabletext) {
-    rows.push('<tr class="lt-row"><td class="lt-cell lt-empty-placeholder" colspan="' + data.headers.length + '">' + data.options.emptyta + '</td></tr>');
+    rows.push('<tr class="lt-row"><td class="lt-cell lt-empty-placeholder" colspan="' + data.headers.length + '">' + data.options.emptytabletext + '</td></tr>');
     rowcount = 1;
   }
   else {

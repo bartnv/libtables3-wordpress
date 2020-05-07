@@ -101,10 +101,10 @@ Most options shown here can be combined within the options array passed into lt_
   'emptytabletext' => 'No rows to show yet'
 ```
 
-# hideifempty
-  * hideifempty (boolean): hide the whole table element if there are no rows in the table
+# hidetableifempty
+  * hidetableifempty (boolean): hide the whole table element if there are no rows in the table
 ```php
-  'hideifempty' => true
+  'hidetableifempty' => true
 ```
 
 # appendcell
