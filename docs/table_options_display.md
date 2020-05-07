@@ -95,10 +95,10 @@ Most options shown here can be combined within the options array passed into lt_
   'emptycelltext' => 'No data'
 ```
 
-# textifempty
-  * textifempty (string): replacement text to show instead of the table if there are no rows in the table
+# emptytabletext
+  * emptytabletext (string): replacement text to show instead of the table if there are no rows in the table
 ```php
-  'textifempty' => 'No rows to show yet'
+  'emptytabletext' => 'No rows to show yet'
 ```
 
 # hideifempty

@@ -934,7 +934,7 @@ function renderTableGrid(table, data, sub) {
   if (data.options.class && data.options.class.table) table.addClass(data.options.class.table);
   if (!sub) thead.append(renderTitle(data));
 
-  if ((data.rows && data.rows.length) || (data.rowcount >= 0) || data.options.textifempty) { // rowcount is set for exports with nopreview=true
+  if ((data.rows && data.rows.length) || (data.rowcount >= 0) || data.options.emptytabletext) { // rowcount is set for exports with nopreview=true
     thead.append(renderHeaders(data, table.attr('id')));
   }
   else if (data.options.hideifempty) {
@@ -1272,8 +1272,8 @@ function renderTbody(tbody, data) {
   if (data.options.page) offset = data.options.limit * (data.options.page - 1);
   else offset = 0;
 
-  if (!data.rows.length && data.options.textifempty) {
-    rows.push('<tr class="lt-row"><td class="lt-cell lt-empty-placeholder" colspan="' + data.headers.length + '">' + data.options.textifempty + '</td></tr>');
+  if (!data.rows.length && data.options.emptytabletext) {
+    rows.push('<tr class="lt-row"><td class="lt-cell lt-empty-placeholder" colspan="' + data.headers.length + '">' + data.options.emptyta + '</td></tr>');
     rowcount = 1;
   }
   else {
@@ -1493,8 +1493,8 @@ function updateTable(tbody, data, newrows) {
   newrows = newrows.slice(); // Copy the array so that we can filter out the existing rows
 
   if (newrows.length) tbody.find('.lt-empty-placeholder').remove();
-  else if (data.options.textifempty && (tbody.find('.lt-empty-placeholder').length == 0)) {
-    tbody.prepend('<tr class="lt-row"><td class="lt-cell lt-empty-placeholder" colspan="' + data.headers.length + '">' + data.options.textifempty + '</td></tr>');
+  else if (data.options.emptytabletext && (tbody.find('.lt-empty-placeholder').length == 0)) {
+    tbody.prepend('<tr class="lt-row"><td class="lt-cell lt-empty-placeholder" colspan="' + data.headers.length + '">' + data.options.emptytabletext + '</td></tr>');
   }
 
   if (data.options.format) {
