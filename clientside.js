@@ -835,7 +835,7 @@ function renderTitle(data) {
   if (data.options.tableaction && data.options.tableaction.text) {
     let action = data.options.tableaction;
     let disp;
-    if (!action.sqlcondition) disp = ' style="display: none;"';
+    if (('sqlcondition' in action) && !action.sqlcondition) disp = ' style="display: none;"';
     else disp = '';
     if (action.confirm) {
       str += '<input type="button" class="lt-tableaction"' + disp + ' onclick="if (confirm(\'' + tr(action.confirm);
