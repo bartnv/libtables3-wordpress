@@ -2037,7 +2037,7 @@ function doInsert(el) {
   }
   if (table.options.insert && table.options.insert.hidden) {
     if (typeof(table.options.insert.hidden[0]) == 'object') { // Multiple hidden fields (array of arrays)
-      for (i = 0; table.options.insert.hidden[i]; i++) processHiddenInsert(formdata, table.options.insert.hidden[i]);
+      for (let i = 0; table.options.insert.hidden[i]; i++) processHiddenInsert(formdata, table.options.insert.hidden[i]);
     }
     else processHiddenInsert(formdata, table.options.insert.hidden);
   }
