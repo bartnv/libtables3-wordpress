@@ -224,7 +224,7 @@ function doAction(button, addparam) {
       context: data,
       data: { mode: 'action', type: 'row', src: data.block + ':' + data.tag, params: paramstr, row: data.active, action: actionid },
       success: function(data) {
-        let action = this.options.rowaction[actionid];
+        let action = Array.isArray(this.options.rowaction)?this.options.rowaction[actionid]:this.options.rowaction;
         if (data.error) appError(data.error, table);
         if (data.usererror) userError(data.usererror);
         if (data.output) {
