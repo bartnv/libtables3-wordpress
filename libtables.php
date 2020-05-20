@@ -23,8 +23,8 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
   else session_start();
 }
 require('config.php');
-if (is_file('local.php')) {
-  if (is_readable('local.php')) include('local.php');
+if (is_file(dirname(__FILE__) . '/local.php')) {
+  if (is_readable(dirname(__FILE__) . '/local.php')) include(dirname(__FILE__) . '/local.php');
   else error_log("Libtables error: local.php exists but is not readable for the PHP user");
 }
 
