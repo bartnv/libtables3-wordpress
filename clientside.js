@@ -582,6 +582,15 @@ function replaceHashes(str, row, returntype = false) {
 
 function renderTable(table, data, sub) {
   let start = Date.now();
+  let filters = sessionStorage.getItem('lt_filters_' + data.block + '_' + data.tag);
+  if (filters) {
+    filters = JSON.parse(filters);
+    for (let i in filters) {
+      if (filters[i].startsWith('<') || filters[i].startsWith('>') || filters[i].startsWith('=')) continue;
+      filters[i] = new RegExp(filters[i], 'i');
+    }
+    data.filters = filters;
+  }
   if (data.options.display && (data.options.display == 'list')) renderTableList(table, data, sub);
   else if (data.options.display && (data.options.display == 'divs')) renderTableDivs(table, data, sub);
   else if (data.options.display && (data.options.display == 'select')) renderTableSelect(table, data, sub);
@@ -914,7 +923,12 @@ function renderHeaders(data, id) {
       if (data.options.mouseover && data.options.mouseover[c]) continue;
       if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
       if ((data.options.filter === true) || data.options.filter[c]) {
-        row.append('<td class="lt-filter"><input type="search" oninput="updateFilter(this);" title="' + filtertext + '"></td>');
+        let text = '';
+        if (data.filters && data.filters[c]) {
+          if (data.filters[c].source) text = data.filters[c].source;
+          else text = data.filters[c];
+        }
+        row.append('<td class="lt-filter"><input type="search" oninput="updateFilter(this);" title="' + filtertext + '" value="' + text + '"></td>');
       }
       else row.append('<td/>');
     }
@@ -1644,6 +1658,11 @@ function updateFilter(edit) {
   runFilters(table, data);
   if (fullscreen.length) syncColumnWidths(fullscreen);
   if (data.options.sum) updateSums(table.find('tfoot'), data);
+  let filters = {};
+  for (let i in data.filters) {
+    filters[i] = (data.filters[i].source?data.filters[i].source:data.filters[i]);
+  }
+  sessionStorage.setItem('lt_filters_' + data.block + '_' + data.tag, JSON.stringify(filters));
 }
 function runFilters(table, data) {
   if (data.options.page > 1) data.options.page = 1;
