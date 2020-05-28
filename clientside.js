@@ -754,12 +754,16 @@ function renderTableFormatBody(tbody, data, offset) {
   let headcount = 0;
   let colcount = 0;
   let inscount = 0;
+  let actcount = 0;
+  let actions;
   let colspan;
   let rowspan = 0;
   let fmt;
 
   if (typeof(data.options.format) == 'string') fmt = data.options.format.split('\n');
   else fmt = data.options.format;
+
+  if (data.options.rowaction) actions = $(renderActions(data.options.rowaction, data.rows[offset]));
 
   for (let r = 0; fmt[r]; r++) {
     let row = $('<tr class="lt-row" data-rowid="' + (data.rows && data.rows[offset]?data.rows[offset][0]:0) + '"/>');
@@ -826,6 +830,15 @@ function renderTableFormatBody(tbody, data, offset) {
         let tdstr = '<td class="lt-cell lt-append"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
         tdstr += replaceHashes(data.options.appendcell, data.rows[offset]) + '</td>';
         row.append(tdstr);
+      }
+      else if ((fmt[r][c] == 'R') && (actions[actcount])) {
+        console.log(actions[actcount]);
+        for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
+        for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
+        actions[actcount].colSpan = colspan;
+        actions[actcount].rowSpan = rowspan;
+        row.append(actions[actcount]);
+        actcount++;
       }
       else if (fmt[r][c] == 'x') row.append('<td class="lt-unused"/>');
     }
@@ -1394,7 +1407,7 @@ function renderCell(options, row, c, element) {
   return '<' + element + ' class="' + classes.join(' ') + '"' + style + onclick + mouseover + '>' + content + '</' + element + '>';
 }
 
-function renderActions(actions, row) {
+function renderActions(actions, row, colspan, rowspan) {
   let str = '';
   let onclick = '';
   let action;
@@ -1406,6 +1419,8 @@ function renderActions(actions, row) {
     else if (typeof actions[i] !== 'object') continue;
     else action = actions[i];
     str += '<td class="lt-cell lt-action" data-actionid="' + i + '" ';
+    if (colspan) str += 'colspan="' + colspan + '" ';
+    if (rowspan) str += 'rowspan="' + rowspan + '" ';
     // if (actions[i].jscondition) {
     //   if (!eval(replaceHashes(actions[i].jscondition, row))) str += ' style="display: none;">';
     // }
