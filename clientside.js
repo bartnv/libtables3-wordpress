@@ -900,17 +900,6 @@ function renderHeaders(data, id) {
   str += '</tr>';
 
   if (data.options.filter && (typeof data.options.filter != 'function')) {
-    let row = $('<tr class="lt-row"/>');
-    if (data.options.selectone) row.append('<td/>');
-    if (data.options.selectany) row.append('<td/>');
-    for (let c = data.options.showid?0:1; c < data.headers.length; c++) {
-      if (data.options.mouseover && data.options.mouseover[c]) continue;
-      if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
-      if ((data.options.filter === true) || data.options.filter[c]) {
-        row.append('<td class="lt-filter"><input type="text" size="5" oninput="updateFilter(this);"></td>');
-      }
-      else row.append('<td/>');
-    }
     let filtertext = "Use these fields to filter the table\n" +
                      "Multiple filtered columns combine with AND logic\n" +
                      "Numeric matching is supported by starting with =, <, >, <= or >=\n" +
@@ -918,13 +907,18 @@ function renderHeaders(data, id) {
                      "  '^text' to match at the start\n" +
                      "  'text$' to match at the end\n" +
                      "  '(one|two)' to match one or two";
-    row.find('td').first()
-      .css('position', 'relative')
-      .prepend('<span class="lt-label-filter"><img src="filter.svg" style="width: 15px; height: 15px;" title="' + filtertext + '"></span>');
-    row.find('td').last()
-      .css('position', 'relative')
-      .append('<span class="lt-label-clear"><a href="javascript:clearFilters(\'' + id + '\');"><img src="clear.svg"></a></span>');
-    str += row.html(); // Yeah I know this is a bit silly, but I need a DOM for it to append the spans above
+    let row = $('<tr class="lt-row"/>');
+    if (data.options.selectone) row.append('<td/>');
+    if (data.options.selectany) row.append('<td/>');
+    for (let c = data.options.showid?0:1; c < data.headers.length; c++) {
+      if (data.options.mouseover && data.options.mouseover[c]) continue;
+      if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
+      if ((data.options.filter === true) || data.options.filter[c]) {
+        row.append('<td class="lt-filter"><input type="search" oninput="updateFilter(this);" title="' + filtertext + '"></td>');
+      }
+      else row.append('<td/>');
+    }
+    str += row.html();
   }
 
   return str;
