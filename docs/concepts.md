@@ -47,18 +47,21 @@ can verify whether certain operations are allowed.
 
 Blocks are included in the main flow of your website by calling lt_print_block().
 This function can be used recursively, so a block can include another block. Some
-libtables workflows operate by replacing the content of the current block with that
+Libtables workflows operate by replacing the content of the current block with that
 of another block.
 
 ## Variables
 
-You should not use global PHP variables like $\_SESSION or $\_GET in blocks, because
-Libtables calls blocks on AJAX context where they may not be available. To store state
-between blocks, such as 'the logged in user' or 'the currently selected product', you
-should use the lt_setvar(), lt_getvar() and lt_isvar() functions instead.
+Libtables provides its own persistent variables to store information like 'the logged
+in user' or 'the currently selected product'. They determine what a specific user can
+see and do within the Libtables application, so they are essential for good security.
+These variables are are used through the lt_setvar(), lt_getvar() and lt_isvar()
+functions. They can also be used in all SQL queries issued from within libtables
+by using named parameter syntax (eg. "SELECT * FROM product WHERE id = :product").
 
-These variables can be used in all SQL queries issued from within libtables by using
-named parameter syntax (eg. "SELECT * FROM product WHERE id = :product").
+If you intend to use the $\_GET and $\_POST arrays within your application, be sure to
+read [this technical explanation](technical_details/#block-execution-contexts)
+of how Libtables operates around them.
 
 PHP and Libtables variable names starting with 'lt_' are reserved for use by Libtables
 and should not be defined within your application.
