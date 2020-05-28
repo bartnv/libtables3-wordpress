@@ -6,4 +6,5 @@ pages:
   - Functions: functions.md
   - lt_table() display options: table_options_display.md
   - lt_table() database mutation options: table_options_database.md
+  - Technical details: technical_details.md
 theme: readthedocs
