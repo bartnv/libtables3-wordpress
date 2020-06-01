@@ -526,6 +526,24 @@ function lt_query_row($query, $params = []) {
   return $row;
 }
 
+function lt_query_foreach_row($query, $function, $params = []) {
+  global $dbh;
+
+  if (!($res = $dbh->prepare($query))) {
+    error_log("Libtables error: query prepare failed: " . $dbh->errorInfo()[2]);
+    return null;
+  }
+  try { lt_bind_params($res, $query, $params); } catch (Exception $e) {
+    error_log("Libtables error: " . $e->getMessage());
+    return null;
+  }
+  if (!$res->execute()) {
+    error_log("Error: query execute failed: " . $res->errorInfo()[2]);
+    return null;
+  }
+  while ($row = $res->fetch()) $function($row);
+}
+
 function lt_tables_from_query($query) {
   if (!preg_match_all('/(?:from|join)\s+([^(\s]+)/i', $query, $matches)) {
     error_log('lt_tables_from_query() failed');
