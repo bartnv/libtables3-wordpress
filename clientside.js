@@ -1407,7 +1407,7 @@ function renderCell(options, row, c, element) {
   return '<' + element + ' class="' + classes.join(' ') + '"' + style + onclick + mouseover + '>' + content + '</' + element + '>';
 }
 
-function renderActions(actions, row, colspan, rowspan) {
+function renderActions(actions, row) {
   let str = '';
   let onclick = '';
   let action;
@@ -1419,8 +1419,6 @@ function renderActions(actions, row, colspan, rowspan) {
     else if (typeof actions[i] !== 'object') continue;
     else action = actions[i];
     str += '<td class="lt-cell lt-action" data-actionid="' + i + '" ';
-    if (colspan) str += 'colspan="' + colspan + '" ';
-    if (rowspan) str += 'rowspan="' + rowspan + '" ';
     // if (actions[i].jscondition) {
     //   if (!eval(replaceHashes(actions[i].jscondition, row))) str += ' style="display: none;">';
     // }
