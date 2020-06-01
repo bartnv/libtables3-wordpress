@@ -245,7 +245,7 @@ switch ($mode) {
     if (empty($_GET['block'])) fatalerr('No blockname specified in mode getblock');
     if (preg_match('/(\.\.|\\|\/)/', $_GET['block'])) fatalerr('Invalid blockname in mode getblock');
     header('Content-type: text/html; charset=utf-8');
-    lt_print_block($_GET['block']);
+    lt_print_block($_GET['block'], [ 'nowrapper' => true ]);
     exit; // All other cases break and print JSON at the end
   case 'transl':
     if (empty($lt_settings['transl_query'])) {
