@@ -48,7 +48,26 @@ $lt_settings = [
   * Leave the 'error_rewrite' array empty for now; it can later be used to translate SQL errors into more user-friendly messages (see [Libtables configuration](configuration/) for more information)
   * Likewise for the 'pk_columns' array; it is only needed if your primary key columns are not named 'id'
 
-Integration of Libtables3 exists for WordPress. Installation is different in this case. See:
+Within your website pages, you need to include libtables.php, as well as load jQuery, clientside.js and style.css from the HTML <head>. For example:
+
+```php
+<?php include('libtables.php'); ?>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Libtables demo</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="text/javascript" src="//code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script type="text/javascript" src="clientside.js"></script>
+</head>
+<body>
+  <?php lt_print_block('blockname-without-extension'); ?>
+</body>
+</html>
+```
+
+Integration of Libtables3 exists specifically for WordPress. Installation is different in this case. See:
    * https://github.com/bartnv/libtables3-wordpress
 
 ## Upgrading from Libtables2 to version 3
