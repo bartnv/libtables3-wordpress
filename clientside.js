@@ -1033,16 +1033,12 @@ function renderInsert(data) {
   if (data.options.appendcell) colspan++;
   for (let c = 1; ; c++) {
     let str;
+    if (c >= data.headers.length) break;
     if (data.options.mouseover && data.options.mouseover[c]) continue;
     if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
-    if (c >= data.headers.length) {
-      row.append('<td class="lt-head" colspan="' + colspan + '">' + tr('Insert') + '</td>');
-      break;
-    }
-    else {
-      if ((typeof(fields[c]) == 'object') && fields[c].label) str = '<td class="lt-head">' + tr(fields[c].label) + '</td>';
-      else str = '<td class="lt-head">' + tr(data.headers[c]) + '</td>';
-    }
+
+    if ((typeof(fields[c]) == 'object') && fields[c].label) str = '<td class="lt-head">' + tr(fields[c].label) + '</td>';
+    else str = '<td class="lt-head">' + tr(data.headers[c]) + '</td>';
     row.append(str);
   }
   rows.push(row);

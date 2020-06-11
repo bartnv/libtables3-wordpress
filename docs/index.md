@@ -68,6 +68,7 @@ Within your website pages, you need to include libtables.php, as well as load jQ
 ```
 
 Integration of Libtables3 exists specifically for WordPress. Installation is different in this case. See:
+
    * https://github.com/bartnv/libtables3-wordpress
 
 ## Upgrading from Libtables2 to version 3
