@@ -755,6 +755,7 @@ function renderTableFormatBody(tbody, data, offset) {
   let colcount = 0;
   let inscount = 0;
   let actcount = 0;
+  let appcount = 0;
   let actions;
   let colspan;
   let rowspan = 0;
@@ -828,8 +829,15 @@ function renderTableFormatBody(tbody, data, offset) {
         for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
         for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
         let tdstr = '<td class="lt-cell lt-append"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
-        tdstr += replaceHashes(data.options.appendcell, data.rows[offset]) + '</td>';
+        if ((appcount > 0) && (!data.options.appendcell[appcount])) {
+          appError('Too many append cells specified in format string for ' + data.block + ':' + data.tag, data.options.format);
+          break;
+        }
+        let cell = data.options.appendcell[appcount] || data.options.appendcell;
+        if (data.rows && data.rows[offset]) tdstr += replaceHashes(cell, data.rows[offset]) + '</td>';
+        else tdstr += cell + '</td>';
         row.append(tdstr);
+        appcount++;
       }
       else if ((fmt[r][c] == 'R') && (actions[actcount])) {
         console.log(actions[actcount]);
@@ -1030,7 +1038,10 @@ function renderInsert(data) {
   if (data.options.selectany) row.append('<td/>');
   let colspan = 1;
   if (data.options.delete) colspan++;
-  if (data.options.appendcell) colspan++;
+  if (data.options.appendcell) {
+    if (typeof data.options.appendcell == 'string') colspan++;
+    else colspan += data.options.appendcell.length;
+  }
   for (let c = 1; ; c++) {
     let str;
     if (c >= data.headers.length) break;
@@ -1329,7 +1340,10 @@ function renderRow(options, row) {
     if (options.hidecolumn && options.hidecolumn[c]) continue;
     html.push(renderCell(options, row, c));
   }
-  if (options.appendcell) html.push('<td class="lt-cell lt-append">' + replaceHashes(options.appendcell, row) + '</td>');
+  if (options.appendcell) {
+    if (typeof options.appendcell == 'string') html.push('<td class="lt-cell lt-append">' + replaceHashes(options.appendcell, row) + '</td>');
+    else for (let cell of options.appendcell) html.push('<td class="lt-cell lt-append">' + replaceHashes(cell, row) + '</td>');
+  }
   if (options.rowaction) html.push(renderActions(options.rowaction, row));
   if (options.delete && row[0]) { // Special rows may have null for id; they can't be deleted so don't show the button
   let value;
