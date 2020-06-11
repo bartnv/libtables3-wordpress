@@ -803,7 +803,7 @@ function renderTableFormatBody(tbody, data, offset) {
           if (!$.isNumeric(i)) continue;
           if (++count === inscount) {
             insert = data.options.insert[i];
-            colid = i;
+            colid = colcount+inscount;
             break;
           }
         }
@@ -1048,7 +1048,8 @@ function renderInsert(data) {
     if (data.options.mouseover && data.options.mouseover[c]) continue;
     if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
 
-    if ((typeof(fields[c]) == 'object') && fields[c].label) str = '<td class="lt-head">' + tr(fields[c].label) + '</td>';
+    if (!fields[c]) str = '<td class="lt-head"></td>';
+    else if (fields[c].label) str = '<td class="lt-head">' + tr(fields[c].label) + '</td>';
     else str = '<td class="lt-head">' + tr(data.headers[c]) + '</td>';
     row.append(str);
   }
@@ -1139,6 +1140,8 @@ function renderField(field, data, c) {
       renderOptions(input, field.list, field.required?true:false);
     }
   }
+  if (field.label) input.attr('data-label', field.label);
+  else input.attr('data-label', data.headers[c]);
   if (field.required && (field.type != 'checkbox')) {
     input.prop('required', true);
     if (field.required.regex) input.prop('pattern', field.required.regex);
@@ -2048,7 +2051,7 @@ function checkEdit(cell, edit, oldvalue) {
 function doInsert(el) {
   el = $(el);
   let row = el.closest('.lt-insert');
-  let error = false;
+  let error = '';
   let table = tables[row.closest('table').attr('id')].data;
   let formdata = new FormData();
   formdata.append('mode', 'insertrow');
@@ -2057,7 +2060,9 @@ function doInsert(el) {
     input = $(input);
     if (!input[0].checkValidity()) {
       input.addClass('lt-check-validity');
-      error = true;
+      if (input.attr('title')) error += input.attr('title') + '\n';
+      else if (input.attr('pattern') && input.val()) error += input.data('label') + ' ' + tr('contains invalid input') + '\n';
+      else error += input.data('label') + ' ' + tr('may not be empty') + '\n';
     }
     let value;
     if (input.prop('type') == 'checkbox') value = input.prop('checked');
@@ -2068,7 +2073,7 @@ function doInsert(el) {
     formdata.append(input.prop('name').replace('.', ':'), value);
   };
   if (error) {
-    alert(tr('Row has errors and cannot be inserted'));
+    alert(error);
     return;
   }
   if (table.options.insert && table.options.insert.hidden) {
