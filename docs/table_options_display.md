@@ -70,9 +70,11 @@ Most options shown here can be combined within the options array passed into lt_
 ```
 
 # format
-  * format (string): lays out the cells of one row according to the specified format. This option implies 'limit => 1' because only one row can be shown at the same
-    time this way. 'H' inserts the next header in sequence, 'C' the next cell, '-' is a horizontal continuation of whatever is left of it, '|' is a vertical continuation,
-    'I' is the next insert field. 'S' is the submit button for the insert function and may only appear once. 'A' places the content of the 'appendcell' option, which may also appear only once. 'x' (lowercase) yields an unused cell, by default styled in light grey.
+  * format (string): lays out the cells of one row according to the specified format. This option implies 'limit => 1'
+    because only one row can be shown at the same time this way. 'H' inserts the next header in sequence, 'C' the next
+    cell, '-' is a horizontal continuation of whatever is left of it, '|' is a vertical continuation, 'I' is the next
+    insert field. 'S' is the submit button for the insert function and may only appear once. 'A' places the content of
+    the next 'appendcell' option. 'x' (lowercase) produces an unused cell, by default styled in light grey.
 ```php
   'format' => 'HH
                CC
@@ -83,8 +85,9 @@ Most options shown here can be combined within the options array passed into lt_
 ```
 
 # pagetitle
-  * pagetitle (string): updates the HTML &lt;title> element with the specified string. You can use #-tags to insert column data into the string. If you display a full table,
-    this will leave the title with the contents of the last row. A more logical use is with the 'format' or 'limit => 1' options.
+  * pagetitle (string): updates the HTML &lt;title> element with the specified string. You can use #-tags to insert
+    column data into the string. If you display a full table, this will leave the title with the contents of the last
+    row. A more logical use is with the 'format' or 'limit => 1' options.
 ```php
   'pagetitle' => 'Showing row #0'
 ```
@@ -108,22 +111,24 @@ Most options shown here can be combined within the options array passed into lt_
 ```
 
 # appendcell
-  * appendcell (string): string to show in a &lt;td> element appended to each normal table row. Can contain any valid HTML and also #-tags which get replaced with
-    data from the corresponding row.
+  * appendcell (string or array of strings): string to show in a &lt;td> element appended to each normal table row.
+    Can contain any valid HTML and also #-tags which get replaced with data from the corresponding row. Multiple entries
+    generate multiple table cells, which can be individually placed when using the format option.
 ```php
   'appendcell' => '<a href="https://www.google.com/search?q=#1">Search Google for #1</a>'
 ```
 
 # appendrow
-  * appendrow (string): string to append as the last row to a table. Should include the relevant &lt;td> tags. No #-tags can be used. Use it to show general information
-    about the data in a table or to link to more resources.
+  * appendrow (string): string to append as the last row to a table. Should include the relevant &lt;td> tags. No #-tags
+    can be used. Use it to show general information about the data in a table or to link to more resources.
 ```php
   'appendrow' => '<td>General information about the table above...</td>'
 ```
 
 # subtable
-  * subtables (array): in the specified column(s), replace each cell with an entire table defined in another block. These subtables can use the same parameters as
-    are available in the current block. Note that the columns need to be present in the SQL query, but they may just be empty.
+  * subtables (array): in the specified column(s), replace each cell with an entire table defined in another block. These
+    subtables can use the same parameters as are available in the current block. Note that the columns need to be present
+    in the SQL query, but they may just be empty.
 ```php
   'subtables' => [
     5 => 'subtables:remarks',
@@ -132,15 +137,16 @@ Most options shown here can be combined within the options array passed into lt_
 ```
 
 # trigger
-  * trigger (string): trigger a reload on another table within the user's browser whenever this table gets changed locally. The string should be the lt_table() tag of
-    the target table.
+  * trigger (string): trigger a reload on another table within the user's browser whenever this table gets changed locally.
+    The string should be the lt_table() tag of the target table.
 ```php
   'trigger' => 'statistics'
 ```
 
 # callbacks
-  * callbacks (array): array of events and the corresponding custom javascript function (part of your website) to call when the event happens. Currently available are
-    'change' (triggers whenever the user changes data locally) and 'loadAll' (triggers when all the tables on the page have finished loading).
+  * callbacks (array): array of events and the corresponding custom javascript function (part of your website) to call when
+    the event happens. Currently available are 'change' (triggers whenever the user changes data locally) and 'loadAll'
+    (triggers when all the tables on the page have finished loading).
 ```php
   'callbacks' => [
     'change' => 'changeSize()',
