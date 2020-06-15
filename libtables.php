@@ -393,7 +393,7 @@ function lt_print_block($block, $options = array()) {
 }
 
 function lt_bind_params($stmt, $query, $params = []) {
-  if (!preg_match_all("/ :([a-z_]+)/", $query, $matches)) return;
+  if (!preg_match_all("/[ (,]:([a-z_]+)/", $query, $matches)) return;
   foreach ($matches[1] as $param) {
     if (isset($params[$param])) $value = $params[$param];
     elseif (isset($_SESSION[$param])) $value = $_SESSION[$param];
