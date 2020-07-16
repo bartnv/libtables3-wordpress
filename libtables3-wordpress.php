@@ -29,8 +29,9 @@ defined('ABSPATH') or die('No script kiddies please!');
 
 class Libtables_Integration {
   public static function register_session() {
-    if (strpos($_SERVER['REQUEST_URI'], '/wp-') !== false) return;
-    if (!session_id()) session_start();
+    if (strpos($_SERVER['REQUEST_URI'], '/wp-admin/admin-ajax.php') !== false) return;
+    if (strpos($_SERVER['REQUEST_URI'], '/wp-admin/site-health.php') !== false) return;
+    if (session_status() !== PHP_SESSION_ACTIVE) session_start();
   }
   public static function handle_shortcode($atts) {
     require_once('libtables.php');
