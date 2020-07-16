@@ -29,6 +29,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 
 class Libtables_Integration {
   public static function register_session() {
+    if (strpos($_SERVER['REQUEST_URI'], '/wp-') !== false) return;
     if (!session_id()) session_start();
   }
   public static function handle_shortcode($atts) {
