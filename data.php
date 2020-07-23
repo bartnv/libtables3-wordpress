@@ -781,6 +781,7 @@ switch ($mode) {
           error_log('Invalid runorder option "$run" in insert in block ' . $_POST['src']);
       }
     }
+    lt_setvar('insertid', NULL);
 
     if (is_string($tableinfo['query'])) {
       $ret += lt_query($tableinfo['query']);
