@@ -772,7 +772,7 @@ switch ($mode) {
         case 'block':
           if (!empty($insert['runblock'])) {
             ob_start();
-            lt_print_block($insert['runblock'], [ 'nowrapper' => ($insert['output']=='block'?false:true) ]);
+            lt_print_block($insert['runblock'], [ 'nowrapper' => (($insert['output']??null)=='block'?false:true) ]);
             $lt_blockoutput = ob_get_clean();
             $ret['output'] = $lt_blockoutput;
           }
