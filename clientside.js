@@ -2227,7 +2227,8 @@ function doDelete(el) {
   let rowid = el.closest('tr').data('rowid');
   let table = tables[el.closest('table').attr('id')].data;
   if (table.options.delete.confirm) {
-    for (let r = 0; r < table.rows.length; r++) {
+    let r;
+    for (r = 0; r < table.rows.length; r++) {
       if (table.rows[r][0] == rowid) break;
     }
     if (r == table.rows.length) {
@@ -2245,8 +2246,9 @@ function doDelete(el) {
     success: function(data) {
       if (data.error) userError(data.error);
       else {
+        let r;
         let newrows = table.rows.slice();
-        for (let r = 0; r < newrows.length; r++) {
+        for (r = 0; r < newrows.length; r++) {
           if (newrows[r][0] == rowid) break;
         }
         if (r == newrows.length) {
