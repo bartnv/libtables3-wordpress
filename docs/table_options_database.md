@@ -118,6 +118,10 @@ Include example:
     * runorder (array): define the order in which the run* options are executed; the default order is [ 'sql', 'php', 'block' ]; [Notes about output variables](#-output-variables)
     * output (string): how to use the output coming out of the last of the runsql/runphp/runblock parameters (as defined by runorder above); valid options are 'block', 'alert', 'location' or 'function';
     * functionname (string): the name of the javascript function to run when using output: 'function'
+    * onconflict (array): SQL fragments to add to the INSERT statement to make use of the internal conflict resolution of PostgreSQL or MySQL/MariaDB (e.g. dealing with collisions on unique constraints). Each array entry consists of the table name as the key and the SQL fragment as a string value. The fragment is added to the SQL of the INSERT statement after the VALUES and before the RETURNING clause.
+        For PostgreSQL, this string should start with "ON CONFLICT"
+        For MySQL, this string should start with "ON DUPLICATE KEY"
+      Within the string, input values can be used with #<columnname> and libtables variables can be used with :<varname> as usual.
 
 Full example:
 ```php
@@ -136,6 +140,28 @@ Full example:
     'hidden' => [
       'target' => 'table.userid',
       'value' => lt_getvar('userid');
+    ]
+  ]
+```
+
+Onconflict example for PostgreSQL (assuming the email column has a UNIQUE constraint set on it):
+```php
+  'insert' => [
+    1 => 'users.email',
+    2 => 'users.name'
+    'onconflict' => [
+      'users' => 'ON CONFLICT (email) DO UPDATE SET name = #name'
+    ]
+  ]
+```
+
+Onconflict example for MySQL/MariaDB (assuming the email column has a UNIQUE constraint set on it):
+```php
+  'insert' => [
+    1 => 'users.email',
+    2 => 'users.name'
+    'onconflict' => [
+      'users' => 'ON DUPLICATE KEY UPDATE name = #name'
     ]
   ]
 ```

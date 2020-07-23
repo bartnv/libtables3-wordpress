@@ -214,12 +214,35 @@ function lt_run_insert($table, $data, $idcolumn = '') {
     else $values_str .= "?, ";
   }
   $query = "INSERT INTO $table (" . implode(',', array_keys($data['columns'])) . ") VALUES (" . rtrim($values_str, ', ') . ")";
+  $values = array_values($data['columns']);
+  if (!empty($data['onconflict'])) {
+    $str = $data['onconflict'];
+    while (preg_match("/[ (,]#([a-zA-Z0-9_]+)/", $str, $matches, PREG_OFFSET_CAPTURE)) {
+      $match = $matches[1];
+      if (!isset($data['columns'][$match[0]])) {
+        error_log('Libtables error: insert field \'' . $match[0] . '\' used in onconflict option not found');
+        continue;
+      }
+      $str = substr_replace($str, '?', $match[1]-1, strlen($match[0])+1);
+      $values[] = $data['columns'][$match[0]];
+    }
+    while (preg_match("/[ (,]:([a-z_]+)/", $str, $matches, PREG_OFFSET_CAPTURE)) {
+      $match = $matches[1];
+      if (!lt_isvar($match[0])) {
+        error_log('Libtables error: lt_var \'' . $match[0] . '\' used in onconflict option not found');
+        continue;
+      }
+      $str = substr_replace($str, '?', $match[1]-1, strlen($match[0])+1);
+      $values[] = lt_getvar($match[0]);
+    }
+    $query .= ' ' . $str;
+  }
   if ($idcolumn && ($driver == 'pgsql')) $query .= " RETURNING $idcolumn";
 
   if (!($stmt = $dbh->prepare($query))) {
     fatalerr("SQL prepare error: " . $dbh->errorInfo()[2]);
   }
-  if (!($stmt->execute(array_values($data['columns'])))) {
+  if (!($stmt->execute($values))) {
     fatalerr("SQL execute error: " . $stmt->errorInfo()[2]);
   }
 
@@ -671,6 +694,10 @@ switch ($mode) {
                 break;
               }
             }
+          }
+          if (($id == 'onconflict') || !empty($options[$tabname])) {
+            $tables[$tabname]['onconflict'] = $options[$tabname];
+            continue;
           }
           if ($options === false) continue; // An insert option can be set to false to override an included edit specification
           elseif (is_string($options)) $target = $options;
