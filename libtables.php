@@ -176,7 +176,7 @@ function prepare_table($table) {
   if (!empty($table['options']['titlequery'])) $ret['title'] = lt_query_single($table['options']['titlequery']);
   else $ret['title'] = $table['title'];
   $ret['options'] = prepare_options($table['options']);
-  if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $ret['crc'] = crc32(json_encode($ret['rows'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PARTIAL_OUTPUT_ON_ERROR));
+  if (empty($lt_settings['checksum']) || ($lt_settings['checksum'] == 'php')) $ret['crc'] = crc32(json_encode($ret['rows'] ?? [], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PARTIAL_OUTPUT_ON_ERROR));
   elseif ($lt_settings['checksum'] == 'psql') {
     $ret['crc'] = lt_query_single("SELECT md5(string_agg(q::text, '')) FROM (" . $table['query'] . ") AS q)");
     if (strpos($ret['crc'], 'Error:') === 0) {
