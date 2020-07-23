@@ -141,6 +141,9 @@ function loadOrRefreshCollection(coll, sub) {
       else refreshTable(div.find('table'), key);
     }
     else if (div.hasClass('lt-div-text')) refreshText(div);
+    else if (div.hasClass('lt-control')) {
+      if (div.is(':empty')) loadControl(div, div.data());
+    }
   });
 }
 jQuery.fn.extend({
@@ -2114,10 +2117,7 @@ function doInsert(el) {
         if (insert.output == 'block') {
           let parent = $('#block_' + tabledata.block).parent();
           $('#block_' + tabledata.block).replaceWith(data.output);
-          loadOrRefreshCollection(parent.find('.lt-div'));
-          parent.find('.lt-control:visible').each(function() {
-            loadControl($(this), $(this).data());
-          });
+          loadOrRefreshCollection(parent.find('.lt-div,.lt-control'));
           return;
         }
         if (insert.output == 'location') {
@@ -2205,13 +2205,9 @@ function doNext(el, prev) {
         }
         if (options.runjs) eval(options.runjs);
         if (data.replace) {
+          let parent = $('#block_' + key.split(':')[0]).parent();
           $('#block_' + key.split(':')[0]).replaceWith(data.replace);
-          let block = $('#block_' + key.split(':')[0]);
-          loadOrRefreshCollection(block.find('.lt-div'));
-          block.find('.lt-control:visible').each(function() {
-            let attr = $(this).data();
-            loadControl($(this), attr);
-          });
+          loadOrRefreshCollection(parent.find('.lt-div,.lt-control'));
         }
         else if (data.location) {
           window.location = data.location;
