@@ -865,7 +865,10 @@ switch ($mode) {
         ob_start();
         if (is_array($table['options']['next'])) $res = lt_print_block($table['options']['next'][0]);
         else $res = lt_print_block($table['options']['next']);
-        if (!empty($res['location'])) $ret['location'] = $res['location'];
+        if (!empty($res['location'])) {
+          ob_clean(); // Clear the block DIV already output by lt_print_block()
+          $ret['location'] = $res['location'];
+        }
         else $ret['replace'] = ob_get_clean();
       }
     }
