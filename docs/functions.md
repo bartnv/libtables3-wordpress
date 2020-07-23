@@ -98,9 +98,17 @@ for instance:
   lt_setvar('userid', $userid);
 ```
 
-This saves the short-lived PHP variable $userid as a persistent Libtables variable. An alternative
-syntax can be used to save for instance $\_GET and $\_POST variable into a Libtables variable. The
-Libtables variable will not be changed if the key doesn't exist in the array.
+This saves the short-lived PHP variable $userid as a persistent Libtables variable. Internally,
+these variables are stored in the PHP session, so they live as long as the session does, or until
+you explicitly unset them by assigning a NULL value:
+
+```php
+    lt_setvar('userid', NULL)
+```
+
+An alternative syntax can be used to save for instance $\_GET and $\_POST variable into
+a Libtables variable. The Libtables variable will not be changed if the key doesn't exist
+in the array.
 
     lt_setvar(varname, array, key)
 
