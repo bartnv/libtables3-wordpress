@@ -1151,7 +1151,7 @@ function renderField(field, data, c) {
     if (field.required.message) input.prop('title', tr(field.required.message));
   }
   if (field.default) {
-    input.val(field.default);
+    if (input.prop('nodeName') != 'SELECT') input.val(field.default);
     input.data('default', field.default);
   }
   if (field.placeholder) input.attr('placeholder', field.placeholder);
@@ -1212,7 +1212,8 @@ function renderOptions(select, list, required) {
   if (!required) select.append('<option value=""></option>');
   for (let i = 0; list.items[i]; i++) {
     let selected;
-    if (select.default && (select.default == list.items[i][1])) selected = ' selected';
+    if (select.default && (select.default == 'first') && (i == 0)) selected = ' selected';
+    else if (select.default && (select.default == list.items[i][1])) selected = ' selected';
     else if (select.defaultid && (select.defaultid == list.items[i][0])) selected = ' selected';
     else selected = '';
     select.append('<option value="' + list.items[i][0] + '"' + selected + '>' + list.items[i][1] + '</option>');
