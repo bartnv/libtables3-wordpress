@@ -1861,7 +1861,7 @@ function doEditSelect(cell) {
   let key = cell.closest('table').attr('id');
   let content = cell.text(), c, query;
   if (tables[key].data.options.format) c = cell.closest('tbody').find('.lt-data').index(cell)+1;
-  else c = cell.parent().children('.lt-data').index(cell)+1;
+  else c = colVisualToReal(tables[key].data, cell.parent().children('.lt-data').index(cell)+1);
   let edit = tables[key].data.options.edit[c];
 
   let params = { mode: 'selectbox', src: tables[key].data.block + ':' + tables[key].data.tag, col: c }
