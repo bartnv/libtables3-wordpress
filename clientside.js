@@ -2006,6 +2006,27 @@ function checkEdit(cell, edit, oldvalue) {
       success: function(data) {
         if (data.error) userError(data.error);
         else {
+          if (data.output) {
+            if (options.edit[c].output == 'block') {
+              let parent = $('#block_' + tables[key].data.block).parent();
+              $('#block_' + tables[key].data.block).replaceWith(data.output);
+              loadOrRefreshCollection(parent.find('.lt-div,.lt-control'));
+              return;
+            }
+            if (options.edit[c].output == 'location') {
+              window.location = data.output;
+              return;
+            }
+            if (options.edit[c].output == 'alert') alert(data.output);
+            else if (options.edit[c].output == 'function') {
+              if (!options.edit[c].functionname) {
+                console.log('Source ' + tables[key].data.block + ':' + tables[key].data.tag + ' has an edit with output type function without a functionname parameter');
+                return;
+              }
+              window[options.edit[c].functionname](data.output);
+            }
+          }
+
           this.removeClass('lt-notsaved');
           tables[key].data.crc = '-';
           // if (!options.style || !options.style[c]) this.css({ backgroundColor: 'transparent' });

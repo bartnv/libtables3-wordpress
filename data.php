@@ -259,6 +259,49 @@ function lt_run_insert($table, $data, $idcolumn = '') {
   return $id;
 }
 
+function doEditInsertRuns($item, $id) {
+  $ret = [];
+  $lt_sqloutput = '';
+  $lt_phpoutput = '';
+  $lt_blockoutput = '';
+  lt_setvar('lt_id', $id);
+  if (empty($item['runorder'])) $item['runorder'] = [ 'sql', 'php', 'block' ];
+  foreach ($item['runorder'] as $run) {
+    switch ($run) {
+      case 'sql':
+        if (!empty($item['runsql'])) {
+          $lt_sqloutput = lt_query_single($item['runsql'], [ 'lt_phpoutput' => $lt_phpoutput, 'lt_blockoutput' => $lt_blockoutput ]);
+          $ret['output'] = $lt_sqloutput;
+        }
+        break;
+      case 'php':
+        if (!empty($item['runphp'])) {
+          try {
+            ob_start();
+            eval($item['runphp']);
+            $lt_phpoutput = ob_get_clean();
+            $ret['output'] = $lt_phpoutput;
+          } catch (Exception $e) {
+            $ret['error'] = "PHP error in runphp: " . $e->getMessage();
+          }
+        }
+        break;
+      case 'block':
+        if (!empty($item['runblock'])) {
+          ob_start();
+          lt_print_block($item['runblock'], [ 'nowrapper' => (($item['output']??null)=='block'?false:true) ]);
+          $lt_blockoutput = ob_get_clean();
+          $ret['output'] = $lt_blockoutput;
+        }
+        break;
+      default:
+        error_log('Invalid runorder option "$run" in block ' . $_POST['src']);
+    }
+  }
+  lt_setvar('lt_id', NULL);
+  return $ret;
+}
+
 if (!empty($_GET['mode'])) $mode = $_GET['mode'];
 elseif (!empty($_POST['mode'])) $mode = $_POST['mode'];
 else fatalerr('No mode specified');
@@ -458,7 +501,8 @@ switch ($mode) {
       lt_audit('UPDATE', $target[0], $_POST['row'], $target[1], NULL, NULL);
     }
 
-    $ret = lt_query($table['query'], $_POST['row']);
+    $ret = is_array($edit)?doEditInsertRuns($edit, $_POST['row']):[];
+    $ret += lt_query($table['query'], $_POST['row']);
     if (isset($ret['error'])) fatalerr('Query for table ' . $table['title'] . ' in block ' . $src[0] . " returned error:\n\n" . $ret['error']);
     $ret['input'] = $_POST['val'];
     break;
@@ -769,46 +813,7 @@ switch ($mode) {
 
     $dbh->query('COMMIT'); // Any errors will exit through fatalerr() and thus cause an implicit rollback
 
-    $ret = [];
-    $lt_sqloutput = '';
-    $lt_phpoutput = '';
-    $lt_blockoutput = '';
-    $insert = $tableinfo['options']['insert'];
-    lt_setvar('insertid', $id);
-    if (empty($insert['runorder'])) $insert['runorder'] = [ 'sql', 'php', 'block' ];
-    foreach ($insert['runorder'] as $run) {
-      switch ($run) {
-        case 'sql':
-          if (!empty($insert['runsql'])) {
-            $lt_sqloutput = lt_query_single($insert['runsql'], [ 'lt_phpoutput' => $lt_phpoutput, 'lt_blockoutput' => $lt_blockoutput ]);
-            $ret['output'] = $lt_sqloutput;
-          }
-          break;
-        case 'php':
-          if (!empty($insert['runphp'])) {
-            try {
-              ob_start();
-              eval($insert['runphp']);
-              $lt_phpoutput = ob_get_clean();
-              $ret['output'] = $lt_phpoutput;
-            } catch (Exception $e) {
-              $ret['error'] = "PHP error in insert runphp: " . $e->getMessage();
-            }
-          }
-          break;
-        case 'block':
-          if (!empty($insert['runblock'])) {
-            ob_start();
-            lt_print_block($insert['runblock'], [ 'nowrapper' => (($insert['output']??null)=='block'?false:true) ]);
-            $lt_blockoutput = ob_get_clean();
-            $ret['output'] = $lt_blockoutput;
-          }
-          break;
-        default:
-          error_log('Invalid runorder option "$run" in insert in block ' . $_POST['src']);
-      }
-    }
-    lt_setvar('insertid', NULL);
+    $ret = doEditInsertRuns($tableinfo['options']['insert'], $id);
 
     if (is_string($tableinfo['query'])) {
       $ret += lt_query($tableinfo['query']);
