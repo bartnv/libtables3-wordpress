@@ -550,7 +550,7 @@ switch ($mode) {
       if (empty($table['options']['tableaction'])) fatalerr('No table action defined in block ' . $_POST['src']);
       $action = $table['options']['tableaction'];
 
-      if ($action['runphp']) {
+      if (!empty($action['runphp'])) {
         try {
           $ret['output'] = eval(replaceHashes($action['runphp']));
         } catch (Exception $e) {
@@ -558,7 +558,7 @@ switch ($mode) {
         }
       }
 
-      if ($action['runsql']) {
+      if (!empty($action['runsql'])) {
         if (!($stmt = $dbh->prepare($action['runsql']))) {
           fatalerr("SQL prepare error: " . $dbh->errorInfo()[2]);
         }
