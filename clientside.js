@@ -193,7 +193,7 @@ function doAction(button, addparam) {
           if (action.output == 'block') {
             // $('#block_' + this.block).replaceWith(data.output);
             let coll = $(data.output).replaceAll('#block_' + this.block);
-            loadOrRefreshCollection(coll.find('.lt-div'));
+            loadOrRefreshCollection(coll.find('.lt-div,.lt-control'));
             return;
           }
           if (action.output == 'location') {
@@ -234,7 +234,7 @@ function doAction(button, addparam) {
           if (action.output == 'block') {
             // $('#block_' + this.block).replaceWith(data.output);
             let coll = $(data.output).replaceAll('#block_' + this.block);
-            loadOrRefreshCollection(coll.find('.lt-div'));
+            loadOrRefreshCollection(coll.find('.lt-div,.lt-control'));
             return;
           }
           if (action.output == 'location') {
