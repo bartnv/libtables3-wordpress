@@ -1216,7 +1216,9 @@ function renderOptions(select, list, required) {
     else if (select.default && (select.default == list.items[i][1])) selected = ' selected';
     else if (select.defaultid && (select.defaultid == list.items[i][0])) selected = ' selected';
     else selected = '';
-    select.append('<option value="' + list.items[i][0] + '"' + selected + '>' + list.items[i][1] + '</option>');
+    let name = list.items[i][1];
+    if (list.items[i][2]) name += ' (' + list.items[i][2] + ')';
+    select.append('<option value="' + list.items[i][0] + '"' + selected + '>' + name + '</option>');
   }
   if (!select.default && !select.defaultid) select.prop('selectedIndex', -1); // This selects nothing, rather than the first option
 }
