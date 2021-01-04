@@ -319,7 +319,7 @@ switch ($mode) {
       break;
     }
     $data = lt_query($lt_settings['transl_query']);
-    if ($data['error']) fatalerr($data['error']);
+    if (!empty($data['error'])) fatalerr($data['error']);
     $ret = [ 'strings' => $data['rows'] ];
     break;
   case 'gettable':
