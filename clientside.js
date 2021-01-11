@@ -382,7 +382,7 @@ function loadTable(div, attr, sub) {
     div.empty().append(tables[key].table);
     div.removeAttr('embedded');
   }
-  else if (tables[key] && tables[key].data.rowcount != -1) {
+  else if (tables[key] && tables[key].data && tables[key].data.rowcount != -1) {
     if (tables[key].doingajax) {
       console.log('Skipping load for', key, '(already in progress)');
       return;
