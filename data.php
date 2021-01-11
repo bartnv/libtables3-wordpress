@@ -549,27 +549,7 @@ switch ($mode) {
     if ($_POST['type'] == 'table') {
       if (empty($table['options']['tableaction'])) fatalerr('No table action defined in block ' . $_POST['src']);
       $action = $table['options']['tableaction'];
-
-      if (!empty($action['runphp'])) {
-        try {
-          $ret['output'] = eval(replaceHashes($action['runphp']));
-        } catch (Exception $e) {
-          $ret['error'] = "PHP error in table action runphp: " . $e->getMessage();
-        }
-      }
-
-      if (!empty($action['runsql'])) {
-        if (!($stmt = $dbh->prepare($action['runsql']))) {
-          fatalerr("SQL prepare error: " . $dbh->errorInfo()[2]);
-        }
-        try { lt_bind_params($res, $action['runsql']); } catch (Exception $e) {
-          fatalerr("SQL parameter error: " . $e->getMessage());
-        }
-        if (!($stmt->execute())) {
-          fatalerr("SQL execute error: " . $stmt->errorInfo()[2]);
-        }
-        $ret['row'] = $stmt->fetch(\PDO::FETCH_NUM);
-      }
+      $ret['row'] = [];
     }
     else if ($_POST['type'] == 'row') {
       if (empty($table['options']['rowaction'])) fatalerr('No actions defined in block ' . $_POST['src']);
@@ -629,7 +609,7 @@ switch ($mode) {
         case 'block':
           if (!empty($action['runblock'])) {
             ob_start();
-            lt_print_block(replaceHashes($action['runblock'], $ret['row']));
+            lt_print_block(replaceHashes($action['runblock'], $ret['row']), [ 'nowrapper' => (($action['output']??null)=='block'?false:true) ]);
             $lt_blockoutput = ob_get_clean();
             $ret['output'] = $lt_blockoutput;
           }
