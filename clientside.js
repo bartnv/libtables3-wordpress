@@ -1422,6 +1422,9 @@ function renderCell(options, row, c, element) {
     if (typeof options.emptycelltext == 'string') content = $('<div/>').text(options.emptycelltext).html(); // Run through jQuery .text() and .html() to apply HTML entity escaping
     else content = '';
   }
+  else if (options.transformation && options.transformation[c] && options.transformation[c].allowhtml) {
+    content = row[c];
+  }
   else content = escape(row[c]);
 
   return '<' + element + ' class="' + classes.join(' ') + '"' + style + onclick + mouseover + '>' + content + '</' + element + '>';
