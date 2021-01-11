@@ -1392,6 +1392,7 @@ function renderCell(options, row, c, element) {
       }
       else if (options.edit[c].show && options.edit[c].show == 'always') {
         input = renderEdit(options.edit[c], null, row[c], ' onchange="directEdit(this);"');
+        if (options.edit[c].required && ((row[c] === false) || (row[c] === options.edit[c].falsevalue))) classes.push('lt-required-empty');
       }
       else if (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length >= 2))) onclick = ' onclick="doEditSelect(this)"';
       else onclick = ' onclick="doEdit(this)"';
