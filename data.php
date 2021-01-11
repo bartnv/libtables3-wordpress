@@ -550,6 +550,14 @@ switch ($mode) {
       if (empty($table['options']['tableaction'])) fatalerr('No table action defined in block ' . $_POST['src']);
       $action = $table['options']['tableaction'];
       $ret['row'] = [];
+      if (!empty($_POST['params'])) {
+        $params = json_decode(base64_decode($_POST['params']));
+        $count = 0;
+        foreach ($params as $param) {
+          $count++;
+          lt_setvar('lt_param' . $count, $param);
+        }
+      }
     }
     else if ($_POST['type'] == 'row') {
       if (empty($table['options']['rowaction'])) fatalerr('No actions defined in block ' . $_POST['src']);
