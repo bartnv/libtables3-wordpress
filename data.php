@@ -144,6 +144,7 @@ function lt_edit_from_query($query) {
 }
 
 function replaceHashes($str, $row) {
+  if (empty($row)) return $str;
   $str = str_replace('#id', $row[0], $str);
   if (strpos($str, '#') !== FALSE) {
     for ($i = count($row)-1; $i >= 0; $i--) $str = str_replace('#' . $i, $row[$i], $str);
