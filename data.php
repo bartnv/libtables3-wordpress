@@ -835,7 +835,7 @@ switch ($mode) {
       lt_audit('UPDATE', $target, $_POST['id'], $table['options']['delete']['update']['column'], NULL, $table['options']['delete']['update']['value']);
     }
     else {
-      if (!($stmt = $dbh->prepare("DELETE FROM " . $target . " WHERE ' . lt_find_pk_column($target) . ' = ?"))) {
+      if (!($stmt = $dbh->prepare("DELETE FROM " . $target . " WHERE " . lt_find_pk_column($target) . " = ?"))) {
         fatalerr("SQL prepare error: " . $dbh->errorInfo()[2]);
       }
       if (!($stmt->execute([ $_POST['id'] ]))) {
