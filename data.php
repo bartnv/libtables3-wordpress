@@ -908,10 +908,22 @@ switch ($mode) {
         }
       }
       if (!empty($table['options']['verify'])) {
-        if (!lt_query_check($table['options']['verify'])) {
-          if (!empty($table['options']['error'])) $ret['error'] = $table['options']['error'];
-          else $ret['error'] = 'Step not complete';
-          break;
+        if (is_array($table['options']['verify'])) {
+          foreach ($table['options']['verify'] as $check) {
+            if (!is_array($check) || (count($check) != 2)) fatalerr('Invalid verify option in lt_control ' . $_POST['src']);
+            if (!lt_query_check($check[0])) {
+              $ret['error'] = $check[1];
+              break;
+            }
+          }
+          if (!empty($ret['error'])) break;
+        }
+        else {
+          if (!lt_query_check($table['options']['verify'])) {
+            if (!empty($table['options']['error'])) $ret['error'] = $table['options']['error'];
+            else $ret['error'] = 'Step not complete';
+            break;
+          }
         }
       }
       if (!empty($table['options']['setvar'])) {
