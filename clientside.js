@@ -111,7 +111,7 @@ function refreshAll() {
     if (tables[key].data.rowcount) return; // rowcount is set for exports with nopreview=true
     refreshTable(table, key);
   });
-  $('.lt-div-text:visible').each(function() {
+  $('.lt-div-text').each(function() {
     refreshText($(this));
   });
 }
