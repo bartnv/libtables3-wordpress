@@ -1745,7 +1745,7 @@ function renderEdit(edit, cell, content, handler) {
   }
   else if (edit.type == 'checkbox') {
     let checked;
-    if (content === (edit.truevalue || 'true')) checked = ' checked';
+    if ((content === true) || (content === (edit.truevalue || 'true'))) checked = ' checked';
     else checked = '';
     input = '<input type="checkbox" id="editbox" name="input"' + checked + handler + '>';
   }
