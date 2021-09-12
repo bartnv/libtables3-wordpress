@@ -1049,18 +1049,20 @@ function renderInsert(data) {
     if (typeof data.options.appendcell == 'string') colspan++;
     else colspan += data.options.appendcell.length;
   }
-  for (let c = 1; ; c++) {
-    let str;
-    if (c >= data.headers.length) break;
-    if (data.options.mouseover && data.options.mouseover[c]) continue;
-    if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
+  if (!data.options.hideheaders) {
+    for (let c = 1; ; c++) {
+      let str;
+      if (c >= data.headers.length) break;
+      if (data.options.mouseover && data.options.mouseover[c]) continue;
+      if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
 
-    if (!fields[c]) str = '<td class="lt-head"></td>';
-    else if (fields[c].label) str = '<td class="lt-head">' + tr(fields[c].label) + '</td>';
-    else str = '<td class="lt-head">' + tr(data.headers[c]) + '</td>';
-    row.append(str);
+      if (!fields[c]) str = '<td class="lt-head"></td>';
+      else if (fields[c].label) str = '<td class="lt-head">' + tr(fields[c].label) + '</td>';
+      else str = '<td class="lt-head">' + tr(data.headers[c]) + '</td>';
+      row.append(str);
+    }
+    rows.push(row);
   }
-  rows.push(row);
 
   row = $('<tr class="lt-row lt-insert"/>');
   if (data.options.selectany) row.append('<td/>');
