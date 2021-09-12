@@ -1120,6 +1120,9 @@ function renderField(field, data, c) {
   else if (field.type == 'file') {
     input = $('<input type="file" class="lt-insert-input" name="' + field.target + '">');
   }
+  else if (field.type == 'image') {
+    input = $('<input type="file" class="lt-insert-input" name="' + field.target + '" accept=".jpg,.jpeg,.png">');
+  }
   else if (!field.query) input = $('<input type="text" class="lt-insert-input" name="' + field.target + '">');
   else {
     input = $('<select class="lt-insert-input" name="' + field.target + '"/>');
@@ -2108,6 +2111,7 @@ function doInsert(el) {
     let value;
     if (input.prop('type') == 'checkbox') value = input.prop('checked');
     else if (input.prop('type') == 'file') value = input[0].files[0];
+    else if (input.prop('type') == 'image') value = input[0].files[0];
     else value = input.val();
     if (value === null) value = '';
     input.trigger('input');

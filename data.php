@@ -766,11 +766,47 @@ switch ($mode) {
         }
         if (!empty($found['type']) && ($found['type'] == 'file')) {
           if (empty($found['path'])) fatalerr("Insert type 'file' without 'path' parameter in block " . $_POST['src']);
-          $path = $found['path'];
-          if (substr($path, -1) !== '/') $path .= '/';
-          $path .= $tables[$tabname]['columns'][$colname]['name'];
-          if (is_file($path)) fatalerr("File already exists");
+          $base = $found['path'];
+          if (substr($base, -1) !== '/') $base .= '/';
+          do {
+            $path = $base . str_replace([ '+', '/' ], 'x', rtrim(base64_encode(openssl_random_pseudo_bytes(16)), '=')) . '.' . pathinfo($tables[$tabname]['columns'][$colname]['name'], PATHINFO_EXTENSION);
+          } while (is_file($path));
           if (!move_uploaded_file($tables[$tabname]['columns'][$colname]['tmp_name'], $path)) fatalerr('Failed to move uploaded file into place');
+          $tables[$tabname]['columns'][$colname] = $path;
+        }
+        elseif (!empty($found['type']) && ($found['type'] == 'image')) {
+          if (empty($found['path'])) fatalerr("Insert type 'image' without 'path' parameter in block " . $_POST['src']);
+          $base = $found['path'];
+          if (substr($base, -1) !== '/') $base .= '/';
+          do {
+            $path = $base . str_replace([ '+', '/' ], 'x', rtrim(base64_encode(openssl_random_pseudo_bytes(16)), '=')) . '.' . pathinfo($tables[$tabname]['columns'][$colname]['name'], PATHINFO_EXTENSION);
+          } while (is_file($path));
+          if (!move_uploaded_file($tables[$tabname]['columns'][$colname]['tmp_name'], $path)) fatalerr('Failed to move uploaded image into place');
+          if (!empty($found['thumb'])) {
+            if ($tables[$tabname]['columns'][$colname]['type'] == 'image/jpeg') {
+              $type = 'image/jpeg';
+              $img = imagecreatefromjpeg($path);
+            }
+            elseif ($tables[$tabname]['columns'][$colname]['type'] == 'image/png') {
+              $type = 'image/png';
+              $img = imagecreatefrompng($path);
+            }
+            else fatalerr('Invalid file type ' . $tables[$tabname]['columns'][$colname]['type']);
+            list($thumbtab, $thumbcol) = explode(".", $found['thumb'], 2);
+            list($w, $h) = getimagesize($path);
+            $dim = 100;
+            $ratio = max($dim/$w, $dim/$h);
+            $x = ($w - $dim / $ratio) / 2;
+            $y = ($h - $dim / $ratio) / 2;
+            $h = $dim / $ratio;
+            $w = $h;
+            $new = imagecreatetruecolor($dim, $dim);
+            imagecopyresampled($new, $img, 0, 0, $x, $y, $dim, $dim, $w, $h);
+            ob_start();
+            imagejpeg($new, null, 75);
+            $data = ob_get_clean();
+            $tables[$thumbtab]['columns'][$thumbcol] = 'data:' . $type . ';base64,' . base64_encode($data);
+          }
           $tables[$tabname]['columns'][$colname] = $path;
         }
       }
