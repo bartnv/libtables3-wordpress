@@ -3,6 +3,7 @@ TD.lt-cell,TD.lt-head,TH.lt-title { padding: 5px; }
 TH.lt-title { font-size: 14px; line-height: 1em; }
 P.menu { text-align: center; }
 TD.lt-head { font-weight: bold; }
+DIV.lt-subhead { font-weight: normal; font-size: small; }
 TR.lt-row { transition: background 2s; }
 TD.lt-cell { white-space: pre-wrap; transition: background 2s; }
 TD.lt-unused { background-color: rgb(200,200,200); }

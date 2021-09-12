@@ -785,7 +785,9 @@ function renderTableFormatBody(tbody, data, offset) {
         for (rowspan = 1; fmt[r+rowspan] && fmt[r+rowspan][c] == '|'; rowspan++);
         for (colspan = 1; fmt[r][c+colspan] == '-'; colspan++);
         let tdstr = '<td class="lt-head"' + (colspan > 1?' colspan="' + colspan + '"':'') + (rowspan > 1?' rowspan="' + rowspan + '"':'') + '>';
-        tdstr += tr(data.headers[headcount]) + '</td>';
+        tdstr += tr(data.headers[headcount]);
+        if (data.options.subheader && data.options.subheader[headcount]) tdstr += '<div class="lt-subhead">' + data.options.subheader[headcount] + '</div>';
+        tdstr += '</td>';
         row.append(tdstr);
       }
       else if (fmt[r][c] == 'C') {
