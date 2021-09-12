@@ -83,7 +83,7 @@ function lt_text($tag, $query, $format, $options = array()) {
   if (!empty($options['classes']['div'])) $divclasses = 'lt-div-text ' . $options['classes']['div'];
   else $divclasses = 'lt-div-text';
 
-  $divstr = ' <div id="' . $tag . '" class="' . $divclasses . '" data-source="' . $basename . ':' . $tag . '"';
+  $divstr = '<div id="' . $tag . '" class="' . $divclasses . '" data-source="' . $basename . ':' . $tag . '"';
   if (!empty($options['embed'])) $divstr .= ' data-embedded="' . base64_encode(lt_query_to_string($query, $format)) . '"';
   print $divstr . "></div>\n";
 }
@@ -522,7 +522,7 @@ function lt_query_row($query, $params = []) {
     error_log("Error: query execute failed: " . $res->errorInfo()[2]);
     return null;
   }
-  if (!($row = $res->fetch(PDO::FETCH_NUM))) return null;
+  if (!($row = $res->fetch())) return null;
   return $row;
 }
 
