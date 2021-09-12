@@ -343,7 +343,7 @@ function loadControl(div, attr) {
   let classes = "lt-control-button";
   if (options.class) classes += ' ' + options.class;
   if (options.fields) {
-    for (field of options.fields) {
+    for (let field of options.fields) {
       if (field.length != 2) {
         console.log('Invalid lt_control field option; ignoring', field);
         continue;
@@ -2217,7 +2217,7 @@ function doNext(el, prev) {
   if (options.prev || options.next) {
     let data = { mode: 'donext', src: key, prev: prev || false };
     if (options.fields) {
-      for (field of options.fields) {
+      for (let field of options.fields) {
         data['field_'+field[0]] = div.find('.lt-control-field[name=' + field[0] + ']').val();
       }
     }
