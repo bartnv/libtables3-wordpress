@@ -859,6 +859,11 @@ switch ($mode) {
     if (empty($table['options']['delete']['table'])) fatalerr('No table defined in delete option in block ' . $_POST['src']);
     $target = $table['options']['delete']['table'];
 
+    if (!empty($table['options']['delete']['runphp'])) {
+      $data = lt_query($table['query'], $_POST['id']);
+      eval(replaceHashes($table['options']['delete']['runphp'], $data['rows'][0]));
+    }
+
     if (!empty($table['options']['delete']['update'])) {
       if (empty($table['options']['delete']['update']['column'])) fatalerr('No column defined in update setting for delete option in block ' . $_POST['src']);
       if (!isset($table['options']['delete']['update']['value'])) fatalerr('No value defined in update setting for delete option in block ' . $_POST['src']);
