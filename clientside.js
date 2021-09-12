@@ -1390,9 +1390,17 @@ function renderCell(options, row, c, element) {
         onclick = '';
         classes.pop(); // Remove the .lt-edit class
       }
-      else if (options.edit[c].show && options.edit[c].show == 'always') {
+      else if (options.edit[c].show) { // Supported is 'always' and 'switch'
         input = renderEdit(options.edit[c], null, row[c], ' onchange="directEdit(this);"');
         if (options.edit[c].required && ((row[c] === false) || (row[c] === options.edit[c].falsevalue))) classes.push('lt-required-empty');
+        if (options.edit[c].show == 'switch') {
+          let arr = new Uint8Array(8);
+          crypto.getRandomValues(arr);
+          let id = arr.join('');
+          input = input.replace('id="editbox"', 'id="' + id + '" class="lt-switch-input"');
+          input += '<label for="' + id + '" class="lt-switch-label"></label>';
+          classes.push('lt-switch');
+        }
       }
       else if (options.edit[c].query || (!options.edit[c].target && (options.edit[c].length >= 2))) onclick = ' onclick="doEditSelect(this)"';
       else onclick = ' onclick="doEdit(this)"';
@@ -1605,6 +1613,7 @@ function updateRow(options, tbody, oldrow, newrow) {
 
   for (let c = 1; c < oldrow.length; c++) {
     let cell = null;
+    if (options.edit && options.edit[c] && (options.edit[c].show == 'switch')) continue;
     if (options.mouseover && options.mouseover[c]) {
       offset++;
       if (oldrow[c] != newrow[c]) {
@@ -2066,6 +2075,7 @@ function checkEdit(cell, edit, oldvalue) {
     if (edit.prop('nodeName') == 'SELECT') cell.text(edit.find('option:selected').text());
     else if (options.edit[c].type == 'password') cell.empty();
     else if (options.edit[c].type == 'datauri') cell.html(tr('Loading...'));
+    else if (options.edit[c].show == 'switch'); // Don't update checkbox type 'switch'
     else if ((newvalue == '') && (typeof options.emptycelltext == 'string')) cell.text(options.emptycelltext);
     else cell.text(newvalue);
     // if (!options.style || !options.style[c]) cell.css({ backgroundColor: '#ffa0a0' });
