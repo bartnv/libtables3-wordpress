@@ -658,9 +658,13 @@ function renderTableDivs(table, data, sub) {
 
   let items = '';
   for (let r = 0; r < data.rows.length; r++) { // Main loop over the data rows
-    items += '<div class="lt-div-row" data-rowid="' + data.rows[r][0] + '">';
+    let classes = '';
+    if (Number.isInteger(data.options.classcolumn)) classes = ' ' + data.rows[r][data.options.classcolumn];
+    items += '<div class="lt-div-row' + classes + '" data-rowid="' + data.rows[r][0] + '">';
     if (data.options.rowlink) items += '<a href="' + replaceHashes(data.options.rowlink, data.rows[r]) + '">';
     for (let c = 1; c < data.rows[r].length; c++) { // Loop over the columns
+      if (data.options.hidecolumn && data.options.hidecolumn[c]) continue;
+      if (c === data.options.classcolumn) continue;
       items += renderCell(data.options, data.rows[r], c, 'div');
     }
     if (data.options.appendcell) items += '<div class="lt-cell lt-append">' + replaceHashes(data.options.appendcell, data.rows[r]) + '</div>';
