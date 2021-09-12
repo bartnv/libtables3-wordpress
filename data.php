@@ -914,6 +914,11 @@ switch ($mode) {
           break;
         }
       }
+      if (!empty($table['options']['setvar'])) {
+        foreach ($table['options']['setvar'] as $name => $value) {
+          lt_setvar($name, $value);
+        }
+      }
       if (!empty($table['options']['runphp'])) {
         global $mch;
         $res = eval($table['options']['runphp']);
