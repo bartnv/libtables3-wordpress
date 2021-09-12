@@ -1923,12 +1923,13 @@ function loadSelectbox(cell, list, content, required) {
   let selected = 0;
   if (!required) selectbox.append('<option value=""></option>');
   for (let i = 0; list.items[i]; i++) {
-    if (list.items[i][1] == content) {
-       selectbox.append('<option value="' + list.items[i][0] + '" selected>' + list.items[i][1] + '</option>');
+    let label = list.items[i][1] + (list.items[i][2]?' (' + list.items[i][2] + ')':'');
+    if (label == content) {
+       selectbox.append('<option value="' + list.items[i][0] + '" selected>' + label + '</option>');
        oldvalue = String(list.items[i][0]);
        selected = 1;
     }
-    else selectbox.append('<option value="' + list.items[i][0] + '">' + list.items[i][1] + '</option>');
+    else selectbox.append('<option value="' + list.items[i][0] + '">' + label + '</option>');
   }
   cell.empty().append(selectbox);
   if (list.insert) this.append('<input type="button" class="lt-add-option" value="➕" onclick="addOption(this, ' + c + ');">');
