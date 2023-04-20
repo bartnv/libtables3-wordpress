@@ -867,7 +867,7 @@ switch ($mode) {
     if (!empty($table['options']['delete']['update'])) {
       if (empty($table['options']['delete']['update']['column'])) fatalerr('No column defined in update setting for delete option in block ' . $_POST['src']);
       if (!isset($table['options']['delete']['update']['value'])) fatalerr('No value defined in update setting for delete option in block ' . $_POST['src']);
-      if (!($stmt = $dbh->prepare("UPDATE " . $target . " SET " . $table['options']['delete']['update']['column'] . " = ? WHERE ' . lt_find_pk_column($target) . ' = ?"))) {
+      if (!($stmt = $dbh->prepare("UPDATE " . $target . " SET " . $table['options']['delete']['update']['column'] . " = ? WHERE " . lt_find_pk_column($target) . " = ?"))) {
         fatalerr("SQL prepare error: " . $dbh->errorInfo()[2]);
       }
       if (!($stmt->execute([ $table['options']['delete']['update']['value'], $_POST['id'] ]))) {
