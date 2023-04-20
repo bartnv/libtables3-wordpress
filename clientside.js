@@ -1454,6 +1454,7 @@ function renderActions(actions, row) {
   let str = '';
   let onclick = '';
   let action;
+  if (row[0] === null) return '';
   for (let i in actions)  {
     if (typeof actions.text == 'string') {
       action = actions;
