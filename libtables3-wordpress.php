@@ -40,9 +40,56 @@ class Libtables_Integration {
     lt_print_block($atts['block']);
     return ob_get_clean();
   }
+
+  function add_admin_menu() {
+    add_options_page('Libtables3 settings', 'Libtables3', 'manage_options', 'libtables3', [ 'Libtables_Integration', 'options_page' ]);
+  }
+  function settings_init() {
+    register_setting('pluginPage', 'libtables_settings');
+    add_settings_section(
+      'libtables_pluginPage_section',
+      __( 'General', 'libtables-integration' ),
+      [ 'Libtables_Integration', 'settings_section_callback' ],
+      'pluginPage'
+    );
+
+    add_settings_field(
+      'libtables_dbconn',
+      __( 'PDO connection string', 'libtables-integration' ),
+      [ 'Libtables_Integration', 'text_field_0_render' ],
+      'pluginPage',
+      'libtables_pluginPage_section'
+    );
+  }
+
+  function text_field_0_render() {
+    $options = get_option('libtables_settings');
+    ?>
+    <input type='text' name='libtables_settings[libtables_dbconn]' value='<?php echo $options['libtables_dbconn']; ?>'>
+    <?php
+  }
+
+  function settings_section_callback() {
+//    echo __( 'This section description', 'libtables-integration' );
+  }
+
+  function options_page() {
+    ?>
+    <form action='options.php' method='post'>
+      <h2>Libtables3 settings</h2>
+      <?php
+      settings_fields( 'pluginPage' );
+      do_settings_sections( 'pluginPage' );
+      submit_button();
+      ?>
+    </form>
+    <?php
+  }
 }
 
 add_action('init', [ 'Libtables_Integration', 'register_session' ]);
+add_action( 'admin_menu', [ 'Libtables_Integration', 'add_admin_menu' ]);
+add_action( 'admin_init', [ 'Libtables_Integration', 'settings_init' ]);
 add_shortcode('libtables', [ 'Libtables_Integration', 'handle_shortcode' ]);
 wp_enqueue_style('libtables-css', '/wp-content/plugins/libtables3-wordpress/style.css');
 wp_enqueue_script('libtables-js', '/wp-content/plugins/libtables3-wordpress/clientside.js', [ 'jquery' ]);
